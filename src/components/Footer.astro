@@ -1,0 +1,168 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../assets/logo_horizontal.svg';
+
+const columns = [
+  {
+    title: 'Comprar',
+    links: ['Hombre', 'Mujer', 'Hoodies', 'Kids', 'Novedades'],
+  },
+  {
+    title: 'Ayuda',
+    links: ['Envíos', 'Devoluciones', 'Guía de tallas', 'Contacto'],
+  },
+  {
+    title: 'Empresa',
+    links: ['Sobre KULT', 'Sostenibilidad', 'Tiendas', 'Trabaja con nosotros'],
+  },
+];
+
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <Image src={logo} alt="KULT" class="footer-logo" width={180} height={42} />
+      <p class="footer-tag">Básicos de diseño, hechos para durar.</p>
+      <form class="newsletter" action="#" method="post">
+        <input type="email" placeholder="Tu email" aria-label="Email" required />
+        <button type="submit">Suscribirme</button>
+      </form>
+    </div>
+
+    <div class="footer-cols">
+      {columns.map((col) => (
+        <div class="footer-col">
+          <h3>{col.title}</h3>
+          <ul>
+            {col.links.map((link) => (
+              <li><a href="#">{link}</a></li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>© {year} KULT. Todos los derechos reservados.</p>
+    <ul class="legal">
+      <li><a href="#">Privacidad</a></li>
+      <li><a href="#">Términos</a></li>
+      <li><a href="#">Cookies</a></li>
+    </ul>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--line);
+    padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1rem, 4vw, 3rem) 1.5rem;
+  }
+
+  .footer-top {
+    display: grid;
+    grid-template-columns: 1.2fr 2fr;
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+
+  .footer-logo {
+    height: 42px;
+    width: auto;
+    filter: brightness(0) invert(1);
+  }
+
+  .footer-tag {
+    margin-top: 1rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    max-width: 22rem;
+  }
+
+  .newsletter {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+    max-width: 24rem;
+  }
+
+  .newsletter input {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.65rem 1rem;
+    color: var(--fg);
+    font-size: 0.85rem;
+  }
+
+  .newsletter input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .newsletter button {
+    border: 0;
+    border-radius: 999px;
+    padding: 0.65rem 1.25rem;
+    background: var(--fg);
+    color: var(--bg);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .footer-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .footer-col h3 {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.9rem;
+  }
+
+  .footer-col li {
+    margin-bottom: 0.6rem;
+  }
+
+  .footer-col a {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .footer-col a:hover {
+    color: var(--fg);
+  }
+
+  .footer-bottom {
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .legal {
+    display: flex;
+    gap: 1.25rem;
+  }
+
+  @media (max-width: 860px) {
+    .footer-top {
+      grid-template-columns: 1fr;
+    }
+    .footer-bottom {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

@@ -1,0 +1,88 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import CategoryTile from '../components/CategoryTile.astro';
+import Footer from '../components/Footer.astro';
+
+import women from '../assets/sec2.jpg';
+import womenMobile from '../assets/sec2-mobile.jpg';
+import family from '../assets/sec1-1.jpg';
+import familyMobile from '../assets/sec1-1-mobile.jpg';
+import men from '../assets/sec3.jpg';
+import menMobile from '../assets/sec3-mobile.jpg';
+import hoodies from '../assets/sec4.jpg';
+import kids from '../assets/sec5.jpg';
+import kidsMobile from '../assets/sec5-mobile.jpg';
+---
+
+<Layout title="KULT — Essentials">
+  <Header />
+
+  <main>
+    <Hero />
+
+    <section class="categories" aria-label="Categorías">
+      <CategoryTile
+        id="women"
+        image={women}
+        imageMobile={womenMobile}
+        alt="Ropa de mujer"
+        kicker="Lo nuevo en ella"
+        title="Mujer"
+        href="/tienda?fit=women"
+        cta="Descubre su estilo"
+      />
+      <CategoryTile
+        id="family"
+        image={family}
+        imageMobile={familyMobile}
+        alt="Ropa familiar"
+        kicker="Juntos, a juego"
+        title="Familiar"
+        href="/tienda?fit=family"
+        cta="Explora los looks"
+      />
+      <CategoryTile
+        id="men"
+        image={men}
+        imageMobile={menMobile}
+        alt="Ropa de hombre"
+        kicker="Corte oversize"
+        title="Hombre"
+        href="/tienda?fit=men"
+        cta="Descubre su estilo"
+      />
+      <CategoryTile
+        id="hoodies"
+        image={hoodies}
+        alt="Ropa unisex"
+        kicker="Básicos sin género"
+        title="Unisex"
+        href="/tienda?fit=unisex"
+        cta="Explora los esenciales"
+      />
+      <CategoryTile
+        id="kids"
+        image={kids}
+        imageMobile={kidsMobile}
+        alt="Ropa infantil"
+        kicker="Estilo en miniatura"
+        title="Kids"
+        href="/tienda?fit=kids"
+        cta="Descubre Mini KULT"
+      />
+    </section>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .categories {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--bg);
+  }
+</style>

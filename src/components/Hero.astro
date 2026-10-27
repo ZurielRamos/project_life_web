@@ -1,0 +1,478 @@
+---
+import { Image, getImage } from 'astro:assets';
+import hero from '../assets/sec11.jpg';
+import heroMobile from '../assets/sec11-mobile.jpg';
+
+// Versión mobile optimizada para art direction vía <picture>.
+const heroMobileImg = await getImage({
+  src: heroMobile,
+  widths: [480, 768],
+  format: 'webp',
+});
+const heroMobileSrcset = heroMobileImg.srcSet.attribute || heroMobileImg.src;
+
+const suggestions = [
+  'una camiseta minimalista',
+  'un diseño de anime',
+  'el logo de mi marca',
+  'una ilustración a mi gusto',
+  'un hoodie oversize negro',
+  'lo que se me ocurra…',
+];
+---
+
+<section class="hero">
+  <picture>
+    <source
+      media="(max-width: 767px)"
+      srcset={heroMobileSrcset}
+      sizes="100vw"
+    />
+    <Image
+      src={hero}
+      alt="Fondo de campaña"
+      class="hero-img"
+      widths={[768, 1280, 1920, 2560]}
+      sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
+    />
+  </picture>
+  <div class="hero-veil"></div>
+
+  <div class="hero-inner">
+    <p class="hero-kicker">Tu idea, tu prenda</p>
+    <h1 class="hero-title">
+      Miles de diseños para tu ropa,<br class="br-desktop" />
+      <span class="accent">o crea el tuyo</span>
+    </h1>
+    <p class="hero-sub">
+      Explora nuestro catálogo o descríbenos lo que imaginas.
+      Lo estampamos en la prenda que elijas.
+    </p>
+
+    <form class="search" role="search" action="/tienda" method="get">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+
+        <input
+          id="hero-search"
+          class="search-field"
+          type="search"
+          name="q"
+          autocomplete="off"
+          aria-label="Buscar o describir un diseño"
+          placeholder="Quiero una camiseta minimalista…"
+          data-words={JSON.stringify(suggestions)}
+        />
+
+        <button type="submit" class="search-btn" data-search-btn>
+          <span class="search-btn-label">Buscar</span>
+          <svg class="search-btn-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M13 6l6 6-6 6"></path>
+          </svg>
+          <span class="search-btn-spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </form>
+
+    <div class="chips">
+      <span class="chips-label">Popular:</span>
+      <a href="/tienda?q=anime" class="chip">Anime</a>
+      <a href="/tienda?q=minimalista" class="chip">Minimalista</a>
+      <a href="/tienda?q=streetwear" class="chip">Streetwear</a>
+      <a href="/tienda?q=logo%20de%20marca" class="chip">Tu logo</a>
+      <a href="#custom" class="chip chip--ghost">+ Pedido personalizado</a>
+    </div>
+  </div>
+
+  <a class="hero-scroll" href="#women" aria-label="Desplazarse">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6">
+      <path d="M6 9l6 6 6-6"></path>
+    </svg>
+  </a>
+</section>
+
+<script>
+  // Loader del botón Buscar: al enviar, mostramos el spinner mientras el
+  // navegador carga la página de resultados (la búsqueda semántica tarda).
+  const searchForm = document.querySelector<HTMLFormElement>('.search');
+  const searchBtn = document.querySelector<HTMLButtonElement>('[data-search-btn]');
+
+  if (searchForm && searchBtn) {
+    searchForm.addEventListener('submit', () => {
+      searchBtn.classList.add('is-loading');
+    });
+    // Restaura el botón si se vuelve atrás (bfcache reusa el DOM).
+    window.addEventListener('pageshow', () => {
+      searchBtn.classList.remove('is-loading');
+    });
+  }
+
+  // Efecto "máquina de escribir" sobre el placeholder NATIVO del input.
+  // Así nunca se superpone con lo que escribe el usuario.
+  const input = document.querySelector<HTMLInputElement>('#hero-search');
+
+  if (input) {
+    let words: string[] = [];
+    try {
+      words = JSON.parse(input.dataset.words ?? '[]');
+    } catch {
+      words = [];
+    }
+
+    const prefix = 'Quiero ';
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (words.length && !reduce) {
+      let w = 0;
+      let c = 0;
+      let deleting = false;
+      let paused = false;
+
+      // Pausar la animación mientras el usuario interactúa.
+      input.addEventListener('focus', () => { paused = true; });
+      input.addEventListener('blur', () => {
+        if (input.value.length === 0) paused = false;
+      });
+
+      const tick = () => {
+        if (paused) {
+          setTimeout(tick, 400);
+          return;
+        }
+        const word = words[w];
+        c += deleting ? -1 : 1;
+        input.placeholder = prefix + word.slice(0, c);
+
+        if (!deleting && c === word.length) {
+          deleting = true;
+          setTimeout(tick, 1500);
+          return;
+        }
+        if (deleting && c === 0) {
+          deleting = false;
+          w = (w + 1) % words.length;
+        }
+        setTimeout(tick, deleting ? 40 : 80);
+      };
+      tick();
+    }
+  }
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    height: 100svh;
+    min-height: 600px;
+    width: 100%;
+    overflow: hidden;
+    background: #061a10;
+    display: grid;
+    place-items: center;
+  }
+
+  .hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.05);
+    animation: slow-zoom 18s ease-in-out infinite alternate;
+  }
+
+  @keyframes slow-zoom {
+    to { transform: scale(1.14); }
+  }
+
+  .hero-veil {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 90% at 50% 40%, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.72)),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35));
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 2;
+    width: min(760px, 92vw);
+    text-align: center;
+    padding: 0 1rem;
+    animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(22px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-kicker {
+    font-size: 0.8rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.82);
+    margin-bottom: 1rem;
+  }
+
+  .hero-title {
+    font-family: var(--font);
+    font-size: clamp(2.1rem, 5.5vw, 4rem);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    color: #ffffff;
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.55);
+    /* Reparte las palabras en líneas equilibradas (evita líneas "viudas"). */
+    text-wrap: balance;
+  }
+
+  .hero-title .accent {
+    color: #7ff0ad;
+  }
+
+  /* Salto de línea manual solo en pantallas anchas; en mobile dejamos que el
+     texto fluya y se equilibre con text-wrap para un corte más natural. */
+  .br-desktop {
+    display: none;
+  }
+
+  @media (min-width: 861px) {
+    .br-desktop {
+      display: inline;
+    }
+  }
+
+  .hero-sub {
+    margin: 1.1rem auto 0;
+    max-width: 34rem;
+    font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+    color: rgba(255, 255, 255, 0.82);
+    text-wrap: balance;
+  }
+
+  /* ---------- Buscador ---------- */
+  .search {
+    margin-top: 2rem;
+  }
+
+  .search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.55rem 0.55rem 1.3rem;
+    background: rgba(12, 14, 13, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  }
+
+  .search-box:focus-within {
+    border-color: rgba(110, 231, 168, 0.7);
+    box-shadow: 0 0 0 4px rgba(39, 208, 122, 0.18), 0 22px 60px rgba(0, 0, 0, 0.45);
+    transform: translateY(-2px);
+  }
+
+  .search-icon {
+    flex: none;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .search-field {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--fg);
+    font-size: clamp(1.05rem, 2.1vw, 1.3rem);
+    font-family: var(--font);
+    padding: 0.85rem 0.3rem;
+  }
+
+  .search-field::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    opacity: 1;
+  }
+
+  .search-field::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+
+  .search-btn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.95rem 1.7rem;
+    background: linear-gradient(100deg, #27d07a, #1f7a4d);
+    color: #04150c;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, filter 0.2s ease;
+  }
+
+  .search-btn svg {
+    transition: transform 0.2s ease;
+  }
+
+  .search-btn:hover {
+    filter: brightness(1.08);
+  }
+
+  .search-btn:hover svg {
+    transform: translateX(3px);
+  }
+
+  .search-btn:active {
+    transform: scale(0.97);
+  }
+
+  /* ---------- Estado de carga del botón Buscar ---------- */
+  .search-btn-spinner {
+    display: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(4, 21, 12, 0.35);
+    border-top-color: #04150c;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .search-btn.is-loading {
+    cursor: progress;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+
+  .search-btn.is-loading .search-btn-arrow {
+    display: none;
+  }
+
+  .search-btn.is-loading .search-btn-spinner {
+    display: inline-block;
+  }
+
+  /* ---------- Chips ---------- */
+  .chips {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .chips-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-right: 0.15rem;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--fg);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .chip:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .chip--ghost {
+    background: transparent;
+    border-style: dashed;
+    border-color: rgba(110, 231, 168, 0.6);
+    color: #9af0c2;
+  }
+
+  .hero-scroll {
+    position: absolute;
+    left: 50%;
+    bottom: 1.4rem;
+    transform: translateX(-50%);
+    z-index: 2;
+    color: var(--fg);
+    opacity: 0.8;
+    animation: bob 2s ease-in-out infinite;
+  }
+
+  @keyframes bob {
+    0%, 100% { transform: translate(-50%, 0); }
+    50% { transform: translate(-50%, 6px); }
+  }
+
+  @media (max-width: 560px) {
+    /* En mobile apilamos input y botón en vertical, cada uno a ancho completo,
+       con un contenedor de esquinas moderadas para que no se vea descuadrado. */
+    .search-box {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.6rem;
+      border-radius: 20px;
+      padding: 0.6rem;
+    }
+
+    .search-icon {
+      display: none;
+    }
+
+    .search-field {
+      width: 100%;
+      text-align: center;
+      padding: 0.85rem 0.75rem;
+      /* Campo con su propia superficie para diferenciarlo del botón. */
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      font-size: 1rem;
+    }
+
+    .search-field::placeholder {
+      text-align: center;
+    }
+
+    .search-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 0.95rem 1.4rem;
+      border-radius: 14px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-img,
+    .hero-scroll {
+      animation: none;
+    }
+    .hero-inner {
+      animation-duration: 0.01ms;
+    }
+  }
+</style>

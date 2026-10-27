@@ -1,0 +1,368 @@
+---
+import { Image } from 'astro:assets';
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import {
+  listStorefrontDesigns,
+  searchStorefrontDesigns,
+  FIT_META,
+} from '../../lib/storefront';
+import type { ProductFit } from '../../lib/types';
+import banner from '../../assets/sec1.jpg';
+
+const VALID_FITS: ProductFit[] = ['women', 'family', 'men', 'unisex', 'kids'];
+
+// Filtros desde la URL: ?fit=women&q=texto
+const fitParam = Astro.url.searchParams.get('fit') ?? '';
+const fit = VALID_FITS.includes(fitParam as ProductFit)
+  ? (fitParam as ProductFit)
+  : undefined;
+const q = (Astro.url.searchParams.get('q') ?? '').trim();
+
+// Con texto => búsqueda semántica (por vectores). Sin texto => listado filtrado.
+const result = q
+  ? await searchStorefrontDesigns(q, { limit: 48 })
+  : await listStorefrontDesigns({ fit, limit: 48 });
+
+const meta = fit ? FIT_META[fit] : null;
+const heading = q ? `Resultados` : meta?.title ?? 'Tienda';
+
+// Helper para construir URLs de filtro conservando/limpiando params.
+const fitHref = (f?: ProductFit) => {
+  const p = new URLSearchParams();
+  if (f) p.set('fit', f);
+  const qs = p.toString();
+  return `/tienda${qs ? `?${qs}` : ''}`;
+};
+---
+
+<Layout
+  title={q ? `Buscar: ${q} — Tienda KULT` : `${heading} — Tienda KULT`}
+>
+  <Header solid />
+
+  <main class="shop">
+    <!-- Banner de campaña -->
+    <div class="banner">
+      <Image
+        src={banner}
+        alt="Campaña"
+        class="banner-img"
+        widths={[768, 1280, 1920]}
+        sizes="100vw"
+        loading="eager"
+      />
+      <div class="banner-copy">
+        <p class="banner-kicker">En la segunda prenda</p>
+        <p class="banner-off">50% OFF</p>
+        <span class="banner-link">Detalles de la campaña *</span>
+      </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav class="crumbs" aria-label="Ruta">
+      <a href="/">Inicio</a>
+      <span>/</span>
+      {q || meta ? <a href="/tienda">Tienda</a> : <span class="crumbs-current">Tienda</span>}
+      {meta && !q && <><span>/</span><span class="crumbs-current">{meta.label}</span></>}
+      {q && <><span>/</span><span class="crumbs-current">Buscar</span></>}
+    </nav>
+
+    <!-- Buscador semántico -->
+    <form class="search-bar" role="search" action="/tienda" method="get" data-search-form>
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+      </svg>
+      <input
+        type="search"
+        name="q"
+        value={q}
+        placeholder="Describe el diseño que buscas…"
+        aria-label="Buscar diseños"
+        autocomplete="off"
+      />
+      <button type="submit" data-search-btn>
+        <span class="btn-label">Buscar</span>
+        <span class="btn-spinner" aria-hidden="true"></span>
+      </button>
+    </form>
+
+    <!-- Barra de controles -->
+    <div class="toolbar">
+      <h1 class="toolbar-title">{q ? `Resultados para "${q}"` : heading}</h1>
+
+      {!q && (
+        <nav class="toolbar-filters" aria-label="Filtrar por categoría">
+          <a href={fitHref()} class:list={['tab', { active: !fit }]}>Todo</a>
+          {VALID_FITS.map((f) => (
+            <a href={fitHref(f)} class:list={['tab', { active: fit === f }]}>
+              {FIT_META[f].label}
+            </a>
+          ))}
+        </nav>
+      )}
+
+      <span class="toolbar-count">{result.total} productos</span>
+    </div>
+
+    {result.items.length > 0 ? (
+      <section class="grid" aria-label="Productos">
+        {result.items.map((product) => (
+          <ProductCard product={product} />
+        ))}
+      </section>
+    ) : (
+      <div class="empty">
+        <p>
+          {q
+            ? 'No encontramos diseños que coincidan.'
+            : 'Aún no hay diseños en esta categoría.'}
+        </p>
+        <a class="empty-cta" href="/#custom">Pide un diseño personalizado</a>
+      </div>
+    )}
+  </main>
+
+  <Footer />
+</Layout>
+
+<script>
+  // Loader del botón de búsqueda mientras carga la nueva vista.
+  const form = document.querySelector<HTMLFormElement>('[data-search-form]');
+  const btn = document.querySelector<HTMLButtonElement>('[data-search-btn]');
+  if (form && btn) {
+    form.addEventListener('submit', () => btn.classList.add('is-loading'));
+    window.addEventListener('pageshow', () => btn.classList.remove('is-loading'));
+  }
+</script>
+
+<style>
+  .shop {
+    background: #f4f2ee;
+    color: #12120f;
+    padding-top: var(--header-h);
+  }
+
+  /* Banner */
+  .banner {
+    position: relative;
+    height: clamp(260px, 38vw, 440px);
+    overflow: hidden;
+    background: #061a10;
+  }
+
+  .banner-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .banner-copy {
+    position: absolute;
+    right: clamp(1.5rem, 6vw, 5rem);
+    top: 50%;
+    transform: translateY(-50%);
+    color: #fff;
+    text-align: right;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .banner-kicker {
+    font-size: clamp(1rem, 2vw, 1.4rem);
+  }
+
+  .banner-off {
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .banner-link {
+    font-size: 0.8rem;
+    opacity: 0.85;
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    padding-top: 0.3rem;
+    display: inline-block;
+    margin-top: 0.4rem;
+  }
+
+  /* Breadcrumb */
+  .crumbs {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 1rem clamp(1rem, 4vw, 3rem) 0;
+    font-size: 0.78rem;
+    color: #6b6b63;
+  }
+
+  .crumbs a:hover {
+    color: #12120f;
+  }
+
+  .crumbs-current {
+    color: #12120f;
+    font-weight: 600;
+  }
+
+  /* Buscador */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 1rem clamp(1rem, 4vw, 3rem) 0;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    border-radius: 999px;
+    max-width: 640px;
+  }
+
+  .search-bar svg {
+    flex: none;
+    color: #6b6b63;
+  }
+
+  .search-bar input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-size: 1rem;
+    font-family: var(--font);
+    color: #12120f;
+    padding: 0.5rem 0;
+  }
+
+  .search-bar button {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 92px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.6rem 1.2rem;
+    background: linear-gradient(100deg, #27d07a, #1f7a4d);
+    color: #04150c;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .btn-spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(4, 21, 12, 0.35);
+    border-top-color: #04150c;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .search-bar button.is-loading {
+    cursor: progress;
+    pointer-events: none;
+  }
+
+  .search-bar button.is-loading .btn-label {
+    display: none;
+  }
+
+  .search-bar button.is-loading .btn-spinner {
+    display: inline-block;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem clamp(1rem, 4vw, 3rem);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .toolbar-title {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .toolbar-filters {
+    display: flex;
+    gap: 1.25rem;
+    justify-self: center;
+  }
+
+  .tab {
+    font-size: 0.85rem;
+    color: #8a8a80;
+    transition: color 0.2s ease;
+  }
+
+  .tab:hover {
+    color: #12120f;
+  }
+
+  .tab.active {
+    color: #12120f;
+    font-weight: 700;
+  }
+
+  .toolbar-count {
+    justify-self: end;
+    font-size: 0.8rem;
+    color: #8a8a80;
+  }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: clamp(1rem, 2.5vw, 2rem);
+    padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 3rem) 4rem;
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 5rem 1.5rem;
+    text-align: center;
+    color: #6b6b63;
+  }
+
+  .empty-cta {
+    padding: 0.7rem 1.5rem;
+    border: 1px solid #1f7a4d;
+    border-radius: 999px;
+    color: #1f7a4d;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 680px) {
+    .toolbar {
+      grid-template-columns: 1fr;
+      justify-items: start;
+    }
+    .toolbar-filters {
+      justify-self: start;
+      flex-wrap: wrap;
+    }
+    .toolbar-count {
+      justify-self: start;
+    }
+  }
+</style>

@@ -1,0 +1,724 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { getStorefrontDesign, formatPrice, FIT_META } from '../../lib/storefront';
+
+const slug = Astro.params.slug as string;
+const product = await getStorefrontDesign(slug);
+
+if (!product) {
+  return Astro.redirect('/tienda', 302);
+}
+
+const price = formatPrice(product.priceCents, product.currency);
+const subtitle = product.fit ? `${FIT_META[product.fit].label}` : null;
+
+// WhatsApp: número destino (solo dígitos) y URL absoluta del producto.
+// El fallback asegura que, aunque falte la env, siempre haya número y el
+// enlace abra el CHAT directo (wa.me/<numero>) y no el diálogo de compartir.
+const whatsappPhone = (
+  import.meta.env.PUBLIC_WHATSAPP_PHONE ?? '573207104999'
+).replace(/\D/g, '');
+const productUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const createdAt = product.createdAt ? new Date(product.createdAt).getTime() : NaN;
+const isNew = Number.isFinite(createdAt) && Date.now() - createdAt < WEEK_MS;
+
+const colors = product.colors.filter((c) => c.images.length > 0);
+const initial = colors[0];
+// Duplicamos las imágenes para el marquee infinito sin cortes.
+const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
+---
+
+<Layout title={`${product.name} — KULT`} description={product.description ?? undefined}>
+  <Header solid hideOnMobile />
+
+  <main class="pdp" data-pdp>
+    <!-- Botón volver flotante (solo mobile, donde se oculta el header). -->
+    <button type="button" class="back-fab" data-back aria-label="Volver">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 18l-6-6 6-6"></path>
+      </svg>
+    </button>
+
+    <!-- Escenario de imágenes.
+         Desktop: marquee automático horizontal.
+         Mobile: carrusel con swipe (scroll-snap), sin autoplay. -->
+    <div class="stage">
+      <div class="marquee" data-marquee>
+        {marquee.map((url, i) => (
+          <div class="slide">
+            <img
+              src={url}
+              alt={`${product.name} ${(i % (initial?.images.length || 1)) + 1}`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
+          </div>
+        ))}
+      </div>
+
+      <!-- Carrusel solo-mobile: una imagen por vista, swipe horizontal -->
+      <div class="carousel" data-carousel>
+        {(initial?.images ?? []).map((url, i) => (
+          <div class="carousel-slide">
+            <img
+              src={url}
+              alt={`${product.name} ${i + 1}`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
+          </div>
+        ))}
+      </div>
+      <!-- Puntos indicadores del carrusel (mobile) -->
+      <div class="dots" data-dots>
+        {(initial?.images ?? []).map((_, i) => (
+          <span class:list={['dot', { active: i === 0 }]}></span>
+        ))}
+      </div>
+    </div>
+
+    <!-- Panel flotante: cards ligeramente grises -->
+    <aside class="panel">
+      <!-- Card: título + descripción -->
+      <div class="card-info">
+        <div class="card-head">
+          <div>
+            <h1 class="p-title">{product.name}</h1>
+            {subtitle && <p class="p-subtitle">{subtitle}</p>}
+            {product.code && <p class="p-code">Cód. {product.code}</p>}
+          </div>
+          {isNew && <span class="p-badge">NUEVO</span>}
+        </div>
+        {product.description && <p class="p-desc">{product.description}</p>}
+      </div>
+
+      <!-- Card: color -->
+      {colors.length > 0 && (
+        <div class="card-info">
+          <div class="p-block-head">
+            <span>Color: <strong data-color-label>{initial?.name ?? ''}</strong></span>
+          </div>
+          <div class="swatches" data-swatches>
+            {colors.map((c, i) => (
+              <button
+                type="button"
+                class:list={['swatch', { active: i === 0 }]}
+                style={`--c:${c.hex ?? '#ccc'}`}
+                data-color-name={c.name ?? ''}
+                data-images={JSON.stringify(c.images)}
+                title={c.name ?? ''}
+                aria-label={c.name ?? 'Color'}
+              ></button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Card: talla -->
+      {product.sizes.length > 0 && (
+        <div class="card-info">
+          <div class="p-block-head">
+            <span>Talla</span>
+            <button type="button" class="link-btn">Guía de tallas</button>
+          </div>
+          <div class="sizes" data-sizes>
+            {product.sizes.map((s, i) => (
+              <button
+                type="button"
+                class:list={['size', { active: i === 0 }]}
+                data-size={s.name}
+              >
+                {s.label ?? s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Card: compra (desktop en el panel; mobile anclada abajo via CSS) -->
+      <div class="card-info card-buy" data-buy-card>
+        <div class="p-buy">
+          <span class="p-price">{price ?? 'Consultar'}</span>
+          <button
+            type="button"
+            class="buy-btn"
+            data-buy
+            data-phone={whatsappPhone}
+            data-name={product.name}
+            data-code={product.code ?? ''}
+            data-url={productUrl}
+          >
+            <svg class="wa-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.004c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.02zM12.04 20.15h-.003a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.24-8.23a8.2 8.2 0 0 1 8.23 8.24c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43l-.48-.01c-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"></path>
+            </svg>
+            <span>Comprar</span>
+          </button>
+        </div>
+        <p class="p-note">Te atendemos por WhatsApp para completar tu pedido.</p>
+      </div>
+    </aside>
+  </main>
+
+  <Footer />
+</Layout>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-pdp]');
+  if (root) {
+    const marquee = root.querySelector<HTMLElement>('[data-marquee]');
+    const carousel = root.querySelector<HTMLElement>('[data-carousel]');
+    const dotsWrap = root.querySelector<HTMLElement>('[data-dots]');
+    const swatches = root.querySelectorAll<HTMLButtonElement>('[data-swatches] .swatch');
+    const label = root.querySelector<HTMLElement>('[data-color-label]');
+
+    // --- Carrusel mobile (swipe) ---
+    // Reconstruye las slides y los puntos para un color dado.
+    const buildCarousel = (images: string[], name: string) => {
+      if (!carousel) return;
+      carousel.innerHTML = images
+        .map(
+          (url, i) =>
+            `<div class="carousel-slide"><img src="${url}" alt="${name} ${i + 1}" loading="lazy" /></div>`,
+        )
+        .join('');
+      if (dotsWrap) {
+        dotsWrap.innerHTML = images
+          .map((_, i) => `<span class="dot${i === 0 ? ' active' : ''}"></span>`)
+          .join('');
+      }
+      carousel.scrollTo({ left: 0 });
+    };
+
+    // Actualiza el punto activo según la posición de scroll del carrusel.
+    const updateDots = () => {
+      if (!carousel || !dotsWrap) return;
+      const w = carousel.clientWidth || 1;
+      const index = Math.round(carousel.scrollLeft / w);
+      dotsWrap
+        .querySelectorAll('.dot')
+        .forEach((d, i) => d.classList.toggle('active', i === index));
+    };
+
+    if (carousel) {
+      let raf = 0;
+      carousel.addEventListener(
+        'scroll',
+        () => {
+          if (raf) return;
+          raf = requestAnimationFrame(() => {
+            raf = 0;
+            updateDots();
+          });
+        },
+        { passive: true },
+      );
+    }
+
+    // Construye el track completo y reinicia la animación (cambio de layout).
+    const buildMarquee = (images: string[], name: string) => {
+      if (!marquee || images.length === 0) return;
+      const doubled = [...images, ...images];
+      marquee.innerHTML = doubled
+        .map(
+          (url, i) =>
+            `<div class="slide"><img src="${url}" alt="${name} ${(i % images.length) + 1}" loading="lazy" /></div>`,
+        )
+        .join('');
+      marquee.style.animation = 'none';
+      void marquee.offsetWidth;
+      marquee.style.setProperty('--count', String(images.length));
+      marquee.style.animation = '';
+    };
+
+    /**
+     * Cambia las imágenes sin reiniciar la posición del slide: si el nuevo
+     * color tiene el mismo número de imágenes, solo reemplaza los `src`
+     * de los <img> existentes (la animación no se interrumpe). Como las
+     * poses son iguales para todos los colores, el conteo siempre coincide.
+     */
+    const swapMarquee = (images: string[], name: string) => {
+      if (!marquee || images.length === 0) return;
+      const imgs = marquee.querySelectorAll('img');
+      // El track está duplicado: 2 × images.length.
+      if (imgs.length !== images.length * 2) {
+        buildMarquee(images, name);
+        return;
+      }
+      imgs.forEach((img, i) => {
+        const url = images[i % images.length];
+        if (img.getAttribute('src') !== url) img.setAttribute('src', url);
+        img.setAttribute('alt', `${name} ${(i % images.length) + 1}`);
+      });
+    };
+
+    swatches.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        let images: string[] = [];
+        try {
+          images = JSON.parse(btn.dataset.images ?? '[]');
+        } catch {
+          images = [];
+        }
+        swatches.forEach((b) => b.classList.toggle('active', b === btn));
+        const colorName = btn.dataset.colorName ?? '';
+        if (label) label.textContent = colorName;
+        swapMarquee(images, colorName);
+        buildCarousel(images, colorName);
+      });
+    });
+
+    root.querySelectorAll<HTMLButtonElement>('[data-sizes] .size').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        root
+          .querySelectorAll('[data-sizes] .size')
+          .forEach((b) => b.classList.toggle('active', b === btn));
+      });
+    });
+
+    // Botón volver: regresa en el historial o cae a /tienda si no hay.
+    const backBtn = root.querySelector<HTMLButtonElement>('[data-back]');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = '/tienda';
+        }
+      });
+    }
+
+    // Botón "Comprar": abre WhatsApp con una ficha del producto.
+    const buyBtn = root.querySelector<HTMLButtonElement>('[data-buy]');
+    if (buyBtn) {
+      buyBtn.addEventListener('click', () => {
+        const phone = (buyBtn.dataset.phone ?? '').replace(/\D/g, '');
+        const name = buyBtn.dataset.name ?? '';
+        const code = buyBtn.dataset.code ?? '';
+        const url = buyBtn.dataset.url ?? window.location.href;
+
+        // Talla y color seleccionados (si existen en la página).
+        const size =
+          root.querySelector<HTMLElement>('[data-sizes] .size.active')?.dataset.size ??
+          root.querySelector<HTMLElement>('[data-sizes] .size.active')?.textContent?.trim() ??
+          '';
+        const color = root.querySelector<HTMLElement>('[data-color-label]')?.textContent?.trim() ?? '';
+
+        // Ficha del producto para el mensaje.
+        const lines = [
+          '¡Hola! Quiero comprar este producto:',
+          '',
+          `*${name}*`,
+          code ? `Código: ${code}` : '',
+          color ? `Color: ${color}` : '',
+          size ? `Talla: ${size}` : '',
+          '',
+          url,
+        ].filter(Boolean);
+
+        const text = encodeURIComponent(lines.join('\n'));
+        const waUrl = phone
+          ? `https://wa.me/${phone}?text=${text}`
+          : `https://wa.me/?text=${text}`;
+        window.open(waUrl, '_blank', 'noopener');
+      });
+    }
+  }
+</script>
+
+<style>
+  .pdp {
+    position: relative;
+    background: #e9e7e1;
+    color: #12120f;
+    min-height: 100svh;
+  }
+
+  /* Escenario a pantalla completa */
+  .stage {
+    position: relative;
+    height: 100svh;
+    overflow: hidden;
+    background: #e9e7e1;
+  }
+
+  /* Marquee: tira horizontal que se desplaza en bucle */
+  .marquee {
+    --count: 2;
+    display: flex;
+    height: 100%;
+    width: max-content;
+    will-change: transform;
+    animation: slide-loop calc(var(--count) * 14s) linear infinite;
+  }
+
+  @keyframes slide-loop {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* Ancho fijo por slide (no depende de la altura calculada, así no
+     se deforma al regenerar el marquee al cambiar de color).
+     :global() para que apliquen también a los slides inyectados por JS,
+     que no llevan el atributo scoped de Astro. */
+  .marquee :global(.slide) {
+    height: 100%;
+    width: clamp(320px, 42vw, 620px);
+    flex: none;
+    background: #e9e7e1;
+  }
+
+  .marquee :global(.slide img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Carrusel con swipe y botón volver (solo mobile): ocultos en desktop. */
+  .carousel,
+  .dots,
+  .back-fab {
+    display: none;
+  }
+
+  /* Panel flotante de cards */
+  .panel {
+    position: absolute;
+    top: calc(var(--header-h) + 1.25rem);
+    right: clamp(1rem, 3vw, 2.5rem);
+    z-index: 3;
+    width: min(380px, calc(100vw - 2rem));
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* Card ligeramente gris translúcida */
+  .card-info {
+    background: rgba(210, 208, 201, 0.82);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  }
+
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .p-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .p-subtitle {
+    margin-top: 0.25rem;
+    color: #5a5a52;
+    font-size: 0.85rem;
+  }
+
+  .p-code {
+    margin-top: 0.3rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: #8a8a80;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .p-badge {
+    flex: none;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid #1f7a4d;
+    color: #1f7a4d;
+    background: rgba(255, 255, 255, 0.6);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .p-desc {
+    margin-top: 0.75rem;
+    color: #3f3f38;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .p-block-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .link-btn {
+    background: none;
+    border: 0;
+    color: #5a5a52;
+    font-size: 0.8rem;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--c);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+
+  .swatch:hover {
+    transform: scale(1.1);
+  }
+
+  .swatch.active {
+    box-shadow: 0 0 0 2px rgba(210, 208, 201, 1), 0 0 0 4px #12120f;
+  }
+
+  .sizes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .size {
+    min-width: 46px;
+    padding: 0.5rem 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .size:hover {
+    border-color: #12120f;
+  }
+
+  .size.active {
+    background: #12120f;
+    color: #e9e7e1;
+    border-color: #12120f;
+  }
+
+  .card-buy {
+    padding-bottom: 1rem;
+  }
+
+  .p-buy {
+    display: flex;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .p-price {
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .buy-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border: 0;
+    border-radius: 8px;
+    padding: 0.95rem;
+    background: #25d366;
+    color: #04240f;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+
+  .buy-btn:hover {
+    background: #1ebe5b;
+  }
+
+  .buy-btn:active {
+    transform: scale(0.98);
+  }
+
+  .wa-icon {
+    flex: none;
+  }
+
+  .p-note {
+    margin-top: 0.6rem;
+    font-size: 0.74rem;
+    color: #5a5a52;
+    text-align: center;
+  }
+
+  @media (max-width: 760px) {
+    .pdp {
+      background: #f1efe9;
+      /* Espacio inferior para que la barra fija de compra no tape contenido. */
+      padding-bottom: 92px;
+    }
+
+    /* Botón volver flotante, esquina superior izquierda. */
+    .back-fab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: calc(0.75rem + env(safe-area-inset-top, 0px));
+      left: 0.75rem;
+      z-index: 30;
+      width: 52px;
+      height: 52px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      color: #12120f;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .back-fab:active {
+      transform: scale(0.94);
+    }
+
+    /* Desktop marquee fuera; mostramos el carrusel swipeable. */
+    .marquee {
+      display: none;
+    }
+
+    .stage {
+      height: auto;
+      overflow: visible;
+      background: #f1efe9;
+    }
+
+    /* Carrusel: una imagen por vista, swipe horizontal con scroll-snap. */
+    .carousel {
+      display: flex;
+      height: 56svh;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .carousel::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* :global para que apliquen también a las slides/puntos inyectados por JS
+       al cambiar de color (no llevan el atributo de scope de Astro). */
+    .carousel :global(.carousel-slide) {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100%;
+      scroll-snap-align: center;
+      scroll-snap-stop: always;
+      background: #f1efe9;
+    }
+
+    .carousel :global(.carousel-slide img) {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Puntos indicadores del carrusel. */
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.75rem 0 0.25rem;
+    }
+
+    .dots :global(.dot) {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.2);
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .dots :global(.dot.active) {
+      background: #12120f;
+      transform: scale(1.2);
+    }
+
+    /* Panel de cards en flujo normal, debajo del carrusel. */
+    .panel {
+      position: static;
+      width: auto;
+      margin: 0.5rem 1rem 1rem;
+    }
+
+    /* La card de compra se ancla a la parte inferior de la pantalla. */
+    .card-buy {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 20;
+      margin: 0;
+      border: 0;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 0;
+      background: #fff;
+      backdrop-filter: none;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.12);
+      padding: 0.6rem clamp(0.75rem, 4vw, 1.25rem);
+      padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .card-buy .p-note {
+      display: none;
+    }
+
+    .p-buy {
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .p-price {
+      background: transparent;
+      padding: 0;
+      font-size: 1.15rem;
+      white-space: nowrap;
+    }
+
+    .buy-btn {
+      padding: 0.85rem 1.25rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee {
+      animation: none;
+    }
+  }
+</style>

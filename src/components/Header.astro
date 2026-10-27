@@ -1,0 +1,211 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../assets/logo.svg';
+
+interface Props {
+  /** Cabecera con fondo sólido claro (para páginas de contenido). */
+  solid?: boolean;
+  /** Oculta el header en viewport mobile (p. ej. detalle de producto). */
+  hideOnMobile?: boolean;
+}
+
+const { solid = false, hideOnMobile = false } = Astro.props;
+
+const nav = [
+  { label: 'MUJER', href: '/tienda?fit=women' },
+  { label: 'FAMILIAR', href: '/tienda?fit=family' },
+  { label: 'HOMBRE', href: '/tienda?fit=men' },
+  { label: 'UNISEX', href: '/tienda?fit=unisex' },
+  { label: 'KIDS', href: '/tienda?fit=kids' },
+];
+---
+
+<header class:list={['header', 'at-top', { solid, 'hide-mobile': hideOnMobile }]} data-header>
+  <nav class="nav" aria-label="Principal">
+    <ul class="nav-links">
+      {nav.map((item) => (
+        <li><a href={item.href}>{item.label}</a></li>
+      ))}
+    </ul>
+
+    <a class="brand" href="/" aria-label="KULT inicio">
+      <Image src={logo} alt="KULT" class="brand-logo" width={48} height={48} />
+    </a>
+
+    <ul class="actions">
+      <li>
+        <a href="/tienda" class="icon-btn" aria-label="Buscar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+          </svg>
+        </a>
+      </li>
+      <li>
+        <a href="/favoritos" class="icon-btn" aria-label="Favoritos">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M12 21s-7.2-4.5-9.6-9C.9 9 2.3 5.5 5.5 5.1c1.9-.2 3.5.8 4.5 2.2 1-1.4 2.6-2.4 4.5-2.2 3.2.4 4.6 3.9 3.1 6.9-2.4 4.5-9.6 9-9.6 9z"></path>
+          </svg>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</header>
+
+<style>
+  .header {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 50;
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
+  }
+
+  /* Variante sólida clara para páginas de contenido (tienda, etc.). */
+  .header.solid {
+    background: #f4f2ee;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    color: #12120f;
+  }
+
+  .header.solid .nav-links a,
+  .header.solid .icon-btn {
+    color: #12120f;
+  }
+
+  .header.solid .brand-logo {
+    filter: none;
+  }
+
+  .nav {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0 clamp(1rem, 4vw, 3rem);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: clamp(1rem, 2.5vw, 2.25rem);
+  }
+
+  .nav-links a {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--fg);
+    opacity: 0.92;
+    transition: opacity 0.2s ease;
+  }
+
+  .nav-links a:hover {
+    opacity: 0.6;
+  }
+
+  .brand {
+    justify-self: center;
+    display: inline-flex;
+  }
+
+  .brand-logo {
+    width: 48px;
+    height: 48px;
+    filter: brightness(0) invert(1);
+    transform-origin: center;
+    transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+    will-change: transform;
+  }
+
+  /* En el top de la página el logo se muestra más grande; al scrollear se
+     encoge al tamaño base. Escalamos con transform para no reflujar el layout
+     del header (que conserva su altura). */
+  .header.at-top .brand-logo {
+    transform: scale(1.5);
+  }
+
+  .actions {
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: clamp(0.75rem, 2vw, 1.5rem);
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  .icon-btn:hover {
+    opacity: 0.7;
+  }
+
+  /* Páginas que piden ocultar el header en mobile (p. ej. detalle de producto).
+     Usa el mismo breakpoint que el layout mobile del PDP (760px). */
+  @media (max-width: 760px) {
+    .header.hide-mobile {
+      display: none;
+    }
+  }
+
+  @media (max-width: 860px) {
+    /* En mobile el header muestra únicamente el logo centrado. */
+    .nav-links,
+    .actions {
+      display: none;
+    }
+
+    .nav {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+
+    .brand {
+      justify-self: center;
+    }
+  }
+</style>
+
+<script>
+  // Logo grande en el top de la página; al empezar a scrollear se encoge.
+  // Alternamos la clase .at-top según la posición de scroll.
+  function initHeaderScroll() {
+    const header = document.querySelector<HTMLElement>('[data-header]');
+    if (!header) return;
+
+    const THRESHOLD = 10; // px de scroll para considerar que "ya no estamos en el top"
+    let ticking = false;
+
+    const apply = () => {
+      ticking = false;
+      header.classList.toggle('at-top', window.scrollY <= THRESHOLD);
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(apply);
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    apply(); // estado inicial
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeaderScroll);
+  } else {
+    initHeaderScroll();
+  }
+  // Navegación client-side de Astro.
+  document.addEventListener('astro:page-load', initHeaderScroll);
+</script>

@@ -15,9 +15,11 @@ interface Props {
 const DEFAULT_OG_IMAGE = '/og.jpg';
 
 const {
-  title = 'Inkttex — Tu idea, tu prenda',
+  // Título ~55 caracteres (rango recomendado 50-60 para buscadores).
+  title = 'Inkttex — Tu idea, tu prenda | Ropa personalizada',
+  // Description ~155 caracteres (rango recomendado para Google y social).
   description =
-    'Miles de diseños para tu ropa, o crea el tuyo. En Inkttex estampamos camisetas, hoodies y básicos a tu gusto para mujer, hombre, familia y kids. Explora el catálogo o descríbenos lo que imaginas.',
+    'Miles de diseños para tu ropa o crea el tuyo. Estampamos camisetas, hoodies y básicos para mujer, hombre, familia y kids. Explora el catálogo.',
   image = DEFAULT_OG_IMAGE,
   ogType = 'website',
   noindex = false,
@@ -29,9 +31,11 @@ const {
 // deduzca al descargarla.
 const isDefaultOgImage = image === DEFAULT_OG_IMAGE;
 
-// Base absoluta del sitio. En producción se configura con PUBLIC_SITE_URL y se
-// refleja en `site` de astro.config.mjs (Astro.site). Fallback por si no está.
-const siteUrl = Astro.site ?? new URL('https://www.inkttex.com');
+// Base absoluta del sitio para URLs de canonical/OG. Preferimos `Astro.site`
+// (configurado con PUBLIC_SITE_URL), pero si no está definido usamos el ORIGEN
+// REAL de la request (Astro.url). Así la OG image apunta siempre al mismo host
+// que el usuario/scraper está visitando y no a un dominio que podría no existir.
+const siteUrl = Astro.site ?? new URL(Astro.url.origin);
 
 // URL canónica de la página actual (absoluta, sin query ni hash).
 const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;

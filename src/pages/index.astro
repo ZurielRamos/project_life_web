@@ -4,17 +4,6 @@ import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
 import CategoryTile from '../components/CategoryTile.astro';
 import Footer from '../components/Footer.astro';
-
-import women from '../assets/bg_mujer.jpg';
-import womenMobile from '../assets/bg_mujer_mobile.jpg';
-import family from '../assets/bg_familia.jpg';
-import familyMobile from '../assets/bg_familia_mobile.jpg';
-import men from '../assets/bg_hombre.jpg';
-import menMobile from '../assets/bg_hombre_mobile.jpg';
-import hoodies from '../assets/bg_hoodie.jpg';
-import hoodiesMobile from '../assets/bg_hoodie_mobile.jpg';
-import kids from '../assets/bg_kids.jpg';
-import kidsMobile from '../assets/bg_kids_mobile.jpg';
 ---
 
 <Layout>
@@ -26,8 +15,8 @@ import kidsMobile from '../assets/bg_kids_mobile.jpg';
     <section class="categories" aria-label="Categorías">
       <CategoryTile
         id="women"
-        image={women}
-        imageMobile={womenMobile}
+        base="bg_mujer"
+        baseMobile="bg_mujer_mobile"
         alt="Ropa de mujer"
         kicker="Lo nuevo en ella"
         title="Mujer"
@@ -36,8 +25,8 @@ import kidsMobile from '../assets/bg_kids_mobile.jpg';
       />
       <CategoryTile
         id="family"
-        image={family}
-        imageMobile={familyMobile}
+        base="bg_familia"
+        baseMobile="bg_familia_mobile"
         alt="Ropa familiar"
         kicker="Juntos, a juego"
         title="Familiar"
@@ -46,8 +35,8 @@ import kidsMobile from '../assets/bg_kids_mobile.jpg';
       />
       <CategoryTile
         id="men"
-        image={men}
-        imageMobile={menMobile}
+        base="bg_hombre"
+        baseMobile="bg_hombre_mobile"
         alt="Ropa de hombre"
         kicker="Corte oversize"
         title="Hombre"
@@ -56,8 +45,8 @@ import kidsMobile from '../assets/bg_kids_mobile.jpg';
       />
       <CategoryTile
         id="hoodies"
-        image={hoodies}
-        imageMobile={hoodiesMobile}
+        base="bg_hoodie"
+        baseMobile="bg_hoodie_mobile"
         alt="Ropa unisex"
         kicker="Básicos sin género"
         title="Unisex"
@@ -66,8 +55,8 @@ import kidsMobile from '../assets/bg_kids_mobile.jpg';
       />
       <CategoryTile
         id="kids"
-        image={kids}
-        imageMobile={kidsMobile}
+        base="bg_kids"
+        baseMobile="bg_kids_mobile"
         alt="Ropa infantil"
         kicker="Estilo en miniatura"
         title="Kids"

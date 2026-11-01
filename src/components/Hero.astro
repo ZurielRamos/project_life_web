@@ -1,20 +1,10 @@
 ---
-import { getImage } from 'astro:assets';
-import hero from '../assets/bg_hero.jpg';
-import heroMobile from '../assets/bg_hero_mobile.jpg';
+import { bgSources } from '../lib/bg-images';
 
-// Art direction + formatos modernos. Generamos AVIF (preferido) y WebP (de
-// respaldo) para las variantes desktop y mobile, y las servimos vía <picture>
-// con el AVIF primero. El <img> final usa el WebP desktop como fallback.
-const DESKTOP_WIDTHS = [768, 1280, 1920, 2560];
-const MOBILE_WIDTHS = [480, 768];
-
-const [heroAvif, heroWebp, heroMobileAvif, heroMobileWebp] = await Promise.all([
-  getImage({ src: hero, widths: DESKTOP_WIDTHS, format: 'avif' }),
-  getImage({ src: hero, widths: DESKTOP_WIDTHS, format: 'webp' }),
-  getImage({ src: heroMobile, widths: MOBILE_WIDTHS, format: 'avif' }),
-  getImage({ src: heroMobile, widths: MOBILE_WIDTHS, format: 'webp' }),
-]);
+// Imágenes ya optimizadas a AVIF en local (sin transformación en runtime).
+// Art direction: variante mobile (vertical) + desktop (apaisada).
+const heroDesktop = bgSources('bg_hero');
+const heroMobile = bgSources('bg_hero_mobile');
 
 const suggestions = [
   'una camiseta minimalista',
@@ -28,37 +18,26 @@ const suggestions = [
 
 <section class="hero">
   <picture>
-    <!-- Mobile (art direction): AVIF primero, WebP de respaldo. -->
+    <!-- Mobile (art direction): AVIF estático responsive. -->
     <source
       media="(max-width: 767px)"
       type="image/avif"
-      srcset={heroMobileAvif.srcSet.attribute}
+      srcset={heroMobile.avifSrcset}
       sizes="100vw"
     />
-    <source
-      media="(max-width: 767px)"
-      type="image/webp"
-      srcset={heroMobileWebp.srcSet.attribute}
-      sizes="100vw"
-    />
-    <!-- Desktop: AVIF primero, WebP de respaldo. -->
+    <!-- Desktop: AVIF estático responsive. -->
     <source
       type="image/avif"
-      srcset={heroAvif.srcSet.attribute}
+      srcset={heroDesktop.avifSrcset}
       sizes="100vw"
     />
-    <source
-      type="image/webp"
-      srcset={heroWebp.srcSet.attribute}
-      sizes="100vw"
-    />
+    <!-- Fallback JPG para navegadores sin soporte AVIF. -->
     <img
-      src={heroWebp.src}
+      src={heroDesktop.fallback}
       alt="Dos modelos con camisetas blancas personalizadas con el diseño «Tu diseño aquí» de Inkttex"
       class="hero-img"
-      width={hero.width}
-      height={hero.height}
-      sizes="100vw"
+      width="2752"
+      height="1536"
       loading="eager"
       fetchpriority="high"
       decoding="async"

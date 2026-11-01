@@ -1,5 +1,4 @@
 ---
-import { Picture } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
@@ -10,7 +9,10 @@ import {
   FIT_META,
 } from '../../lib/storefront';
 import type { ProductFit } from '../../lib/types';
-import banner from '../../assets/sec1.jpg';
+import { bgSources } from '../../lib/bg-images';
+
+// Banner optimizado a AVIF en local (sin transformación en runtime).
+const banner = bgSources('sec1');
 
 const VALID_FITS: ProductFit[] = ['women', 'family', 'men', 'unisex', 'kids'];
 
@@ -47,15 +49,18 @@ const fitHref = (f?: ProductFit) => {
   <main class="shop">
     <!-- Banner de campaña -->
     <div class="banner">
-      <Picture
-        src={banner}
-        alt="Campaña Inkttex: 50% de descuento en la segunda prenda"
-        class="banner-img"
-        formats={['avif', 'webp']}
-        widths={[768, 1280, 1920]}
-        sizes="100vw"
-        loading="eager"
-      />
+      <picture>
+        <source type="image/avif" srcset={banner.avifSrcset} sizes="100vw" />
+        <img
+          src={banner.fallback}
+          alt="Campaña Inkttex: 50% de descuento en la segunda prenda"
+          class="banner-img"
+          width="2752"
+          height="1536"
+          loading="eager"
+          decoding="async"
+        />
+      </picture>
       <div class="banner-copy">
         <p class="banner-kicker">En la segunda prenda</p>
         <p class="banner-off">50% OFF</p>

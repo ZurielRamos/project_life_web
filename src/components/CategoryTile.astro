@@ -1,5 +1,5 @@
 ---
-import { Image, getImage } from 'astro:assets';
+import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 
 interface Props {
@@ -25,28 +25,54 @@ const {
   cta = 'Ver más',
 } = Astro.props;
 
-// Si hay versión mobile, la optimizamos para el <source> del <picture>.
-const mobileImg = imageMobile
-  ? await getImage({ src: imageMobile, widths: [480, 768], format: 'webp' })
-  : null;
-const mobileSrcset = mobileImg
-  ? mobileImg.srcSet.attribute || mobileImg.src
+// Formatos modernos (AVIF preferido + WebP de respaldo) para la imagen
+// principal, y opcionalmente para la variante mobile (art direction).
+const DESKTOP_WIDTHS = [768, 1280, 1920, 2560];
+const MOBILE_WIDTHS = [480, 768];
+
+const [imgAvif, imgWebp] = await Promise.all([
+  getImage({ src: image, widths: DESKTOP_WIDTHS, format: 'avif' }),
+  getImage({ src: image, widths: DESKTOP_WIDTHS, format: 'webp' }),
+]);
+
+const mobilePair = imageMobile
+  ? await Promise.all([
+      getImage({ src: imageMobile, widths: MOBILE_WIDTHS, format: 'avif' }),
+      getImage({ src: imageMobile, widths: MOBILE_WIDTHS, format: 'webp' }),
+    ])
   : null;
 ---
 
 <section id={id} class="tile" data-tile>
   <a class="tile-link" href={href} aria-label={title}>
     <picture>
-      {mobileSrcset && (
-        <source media="(max-width: 767px)" srcset={mobileSrcset} sizes="100vw" />
+      {mobilePair && (
+        <>
+          <source
+            media="(max-width: 767px)"
+            type="image/avif"
+            srcset={mobilePair[0].srcSet.attribute}
+            sizes="100vw"
+          />
+          <source
+            media="(max-width: 767px)"
+            type="image/webp"
+            srcset={mobilePair[1].srcSet.attribute}
+            sizes="100vw"
+          />
+        </>
       )}
-      <Image
-        src={image}
+      <source type="image/avif" srcset={imgAvif.srcSet.attribute} sizes="100vw" />
+      <source type="image/webp" srcset={imgWebp.srcSet.attribute} sizes="100vw" />
+      <img
+        src={imgWebp.src}
         alt={alt}
         class="tile-img"
-        widths={[768, 1280, 1920, 2560]}
+        width={image.width}
+        height={image.height}
         sizes="100vw"
         loading="lazy"
+        decoding="async"
       />
     </picture>
     <div class="tile-veil"></div>
@@ -91,13 +117,15 @@ const mobileSrcset = mobileImg
     transform: scale(1.04);
   }
 
+  /* Velo de contraste. En desktop el texto va a la derecha, así que oscurecemos
+     ese lado de borde a borde (degradado horizontal limpio, sin manchas). */
   .tile-veil {
     position: absolute;
     inset: 0;
     background: linear-gradient(
-      to top left,
-      rgba(0, 0, 0, 0.55),
-      rgba(0, 0, 0, 0) 45%
+      to right,
+      rgba(0, 0, 0, 0) 40%,
+      rgba(0, 0, 0, 0.55) 100%
     );
   }
 
@@ -127,13 +155,15 @@ const mobileSrcset = mobileImg
     padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.5rem, 4vw, 3.5rem) 1rem;
     pointer-events: none;
     will-change: transform;
+    /* Sombra sutil para afinar el contraste; el grueso lo aporta el velo. */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   }
 
   .tile-kicker {
     font-size: 0.72rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: #ffffff;
   }
 
   .tile-title {
@@ -142,7 +172,8 @@ const mobileSrcset = mobileImg
     font-weight: 700;
     line-height: 0.95;
     letter-spacing: -0.01em;
-    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.4);
+    color: #ffffff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   }
 
   .tile-cta {
@@ -150,6 +181,7 @@ const mobileSrcset = mobileImg
     font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.06em;
+    color: #2fd1de;
     border-bottom: 1px solid currentColor;
     padding-bottom: 2px;
     width: fit-content;
@@ -169,6 +201,19 @@ const mobileSrcset = mobileImg
     /* El título se mueve con GSAP (position:absolute) dentro de la sección,
        así que mantenemos overflow:hidden (heredado) para recortar el velo
        del texto y evitar scroll horizontal. */
+
+    /* En mobile el texto va centrado y recorre la sección verticalmente, así
+       que el velo lateral de desktop no sirve. Usamos un velo vertical que
+       oscurece centro e inferior (donde vive y termina el texto) dejando la
+       parte superior de la foto más limpia. */
+    .tile-veil {
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.45) 50%,
+        rgba(0, 0, 0, 0.6) 100%
+      );
+    }
 
     .tile-contentwrap {
       display: contents;
@@ -210,38 +255,6 @@ const mobileSrcset = mobileImg
       transform: none;
       margin-inline: auto;
       pointer-events: auto;
-    }
-
-    /* Sombra en el texto para diferenciarlo del fondo. Reforzada para que
-       funcione también sobre superficies claras/blancas de las imágenes. */
-    .tile-content {
-      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
-    }
-
-    .tile-title {
-      text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7);
-    }
-
-    /* Velo oscuro difuminado DETRÁS del bloque de texto. Como está anclado al
-       .tile-content, acompaña al texto mientras se desplaza con el scroll, así
-       garantiza contraste sin importar sobre qué zona (clara u oscura) de la
-       foto quede el título en cada momento. */
-    .tile-content::before {
-      content: '';
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 120%;
-      height: 180%;
-      z-index: -1;
-      pointer-events: none;
-      background: radial-gradient(
-        60% 60% at 50% 50%,
-        rgba(0, 0, 0, 0.55) 0%,
-        rgba(0, 0, 0, 0.3) 45%,
-        rgba(0, 0, 0, 0) 75%
-      );
     }
   }
 </style>

@@ -32,7 +32,12 @@ const initial = colors[0];
 const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
 ---
 
-<Layout title={`${product.name} — KULT`} description={product.description ?? undefined}>
+<Layout
+  title={`${product.name} — Inkttex`}
+  description={product.description ?? undefined}
+  image={product.cover ?? initial?.images[0] ?? undefined}
+  ogType="product"
+>
   <Header solid hideOnMobile />
 
   <main class="pdp" data-pdp>
@@ -435,8 +440,8 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
     flex: none;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    border: 1px solid #1f7a4d;
-    color: #1f7a4d;
+    border: 1px solid #01b7bb;
+    color: #017a7d;
     background: rgba(255, 255, 255, 0.6);
     font-size: 0.58rem;
     font-weight: 700;

@@ -1,5 +1,5 @@
 ---
-import { Image } from 'astro:assets';
+import { Picture } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
@@ -39,17 +39,19 @@ const fitHref = (f?: ProductFit) => {
 ---
 
 <Layout
-  title={q ? `Buscar: ${q} — Tienda KULT` : `${heading} — Tienda KULT`}
+  title={q ? `Buscar: ${q} — Tienda Inkttex` : `${heading} — Tienda Inkttex`}
+  noindex={Boolean(q)}
 >
   <Header solid />
 
   <main class="shop">
     <!-- Banner de campaña -->
     <div class="banner">
-      <Image
+      <Picture
         src={banner}
-        alt="Campaña"
+        alt="Campaña Inkttex: 50% de descuento en la segunda prenda"
         class="banner-img"
+        formats={['avif', 'webp']}
         widths={[768, 1280, 1920]}
         sizes="100vw"
         loading="eager"
@@ -249,8 +251,8 @@ const fitHref = (f?: ProductFit) => {
     border: 0;
     border-radius: 999px;
     padding: 0.6rem 1.2rem;
-    background: linear-gradient(100deg, #27d07a, #1f7a4d);
-    color: #04150c;
+    background: linear-gradient(100deg, #01b7bb, #017a7d);
+    color: #ffffff;
     font-weight: 700;
     font-size: 0.85rem;
     cursor: pointer;
@@ -260,8 +262,8 @@ const fitHref = (f?: ProductFit) => {
     display: none;
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(4, 21, 12, 0.35);
-    border-top-color: #04150c;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #ffffff;
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
   }
@@ -345,9 +347,9 @@ const fitHref = (f?: ProductFit) => {
 
   .empty-cta {
     padding: 0.7rem 1.5rem;
-    border: 1px solid #1f7a4d;
+    border: 1px solid #01b7bb;
     border-radius: 999px;
-    color: #1f7a4d;
+    color: #017a7d;
     font-weight: 600;
     font-size: 0.85rem;
   }

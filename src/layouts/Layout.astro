@@ -1,15 +1,48 @@
 ---
-import logo from '../assets/logo.svg';
+import logo from '../assets/logo-inkttex.svg';
 
 interface Props {
   title?: string;
   description?: string;
+  /** Ruta o URL de la imagen para Open Graph / Twitter (1200×630, JPG/PNG). */
+  image?: string;
+  /** Tipo de contenido Open Graph. */
+  ogType?: 'website' | 'article' | 'product';
+  /** Evita indexación del buscador (p. ej. páginas de resultados). */
+  noindex?: boolean;
 }
 
+const DEFAULT_OG_IMAGE = '/og.png';
+
 const {
-  title = 'KULT — Essentials',
-  description = 'Camisetas, hoodies y básicos de diseño para hombre, mujer y niños.',
+  title = 'Inkttex — Tu idea, tu prenda',
+  description =
+    'Miles de diseños para tu ropa, o crea el tuyo. En Inkttex estampamos camisetas, hoodies y básicos a tu gusto para mujer, hombre, familia y kids. Explora el catálogo o descríbenos lo que imaginas.',
+  image = DEFAULT_OG_IMAGE,
+  ogType = 'website',
+  noindex = false,
 } = Astro.props;
+
+// Solo la imagen OG por defecto del sitio tiene dimensiones/formato conocidos
+// (1200×630 PNG). Para imágenes personalizadas (p. ej. fotos de producto
+// remotas) omitimos los hints de tamaño/tipo y dejamos que el scraper los
+// deduzca al descargarla.
+const isDefaultOgImage = image === DEFAULT_OG_IMAGE;
+
+// Base absoluta del sitio. En producción se configura con PUBLIC_SITE_URL y se
+// refleja en `site` de astro.config.mjs (Astro.site). Fallback por si no está.
+const siteUrl = Astro.site ?? new URL('https://www.inkttex.com');
+
+// URL canónica de la página actual (absoluta, sin query ni hash).
+const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
+
+// La imagen OG debe ser una URL absoluta. Si ya nos pasan una absoluta la
+// respetamos; si es una ruta la resolvemos contra el dominio del sitio.
+const ogImageURL = /^https?:\/\//.test(image)
+  ? image
+  : new URL(image, siteUrl).href;
+
+const siteName = 'Inkttex';
 ---
 
 <!doctype html>
@@ -19,7 +52,38 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href={logo.src} />
     <meta name="generator" content={Astro.generator} />
+
+    <!-- SEO base -->
+    <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Open Graph (Facebook, LinkedIn, WhatsApp, Telegram, etc.) -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:secure_url" content={ogImageURL} />
+    {isDefaultOgImage && (
+      <>
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+      </>
+    )}
+    <meta property="og:image:alt" content={title} />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
+    <meta name="twitter:image:alt" content={title} />
+
     <link
       rel="preload"
       href="/fonts/rumeur.woff2"
@@ -27,7 +91,6 @@ const {
       type="font/woff2"
       crossorigin
     />
-    <title>{title}</title>
   </head>
   <body>
     <slot />
@@ -61,7 +124,13 @@ const {
     --fg: #ffffff;
     --muted: rgba(255, 255, 255, 0.7);
     --line: rgba(255, 255, 255, 0.14);
-    --accent: #1f7a4d;
+    /* Paleta de marca tomada del logo Inkttex. */
+    --accent: #01b7bb;
+    --accent-dark: #017a7d;
+    --accent-soft: #58e0e3;
+    --brand-teal: #01b7bb;
+    --brand-yellow: #fecc2b;
+    --brand-purple: #9600fc;
     --header-h: 72px;
     --font: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
     --font-display: 'rumeur', 'rumeur-fallback', Arial, sans-serif;

@@ -5,18 +5,19 @@ import Hero from '../components/Hero.astro';
 import CategoryTile from '../components/CategoryTile.astro';
 import Footer from '../components/Footer.astro';
 
-import women from '../assets/sec2.jpg';
-import womenMobile from '../assets/sec2-mobile.jpg';
-import family from '../assets/sec1-1.jpg';
-import familyMobile from '../assets/sec1-1-mobile.jpg';
-import men from '../assets/sec3.jpg';
-import menMobile from '../assets/sec3-mobile.jpg';
-import hoodies from '../assets/sec4.jpg';
-import kids from '../assets/sec5.jpg';
-import kidsMobile from '../assets/sec5-mobile.jpg';
+import women from '../assets/bg_mujer.jpg';
+import womenMobile from '../assets/bg_mujer_mobile.jpg';
+import family from '../assets/bg_familia.jpg';
+import familyMobile from '../assets/bg_familia_mobile.jpg';
+import men from '../assets/bg_hombre.jpg';
+import menMobile from '../assets/bg_hombre_mobile.jpg';
+import hoodies from '../assets/bg_hoodie.jpg';
+import hoodiesMobile from '../assets/bg_hoodie_mobile.jpg';
+import kids from '../assets/bg_kids.jpg';
+import kidsMobile from '../assets/bg_kids_mobile.jpg';
 ---
 
-<Layout title="KULT — Essentials">
+<Layout>
   <Header />
 
   <main>
@@ -56,6 +57,7 @@ import kidsMobile from '../assets/sec5-mobile.jpg';
       <CategoryTile
         id="hoodies"
         image={hoodies}
+        imageMobile={hoodiesMobile}
         alt="Ropa unisex"
         kicker="Básicos sin género"
         title="Unisex"
@@ -70,7 +72,7 @@ import kidsMobile from '../assets/sec5-mobile.jpg';
         kicker="Estilo en miniatura"
         title="Kids"
         href="/tienda?fit=kids"
-        cta="Descubre Mini KULT"
+        cta="Descubre Mini Inkttex"
       />
     </section>
   </main>

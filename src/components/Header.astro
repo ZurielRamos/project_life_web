@@ -1,6 +1,8 @@
 ---
-import { Image } from 'astro:assets';
-import logo from '../assets/logo.svg';
+// Importamos el SVG como markup crudo para embeberlo inline. Así el logo
+// conserva sus colores de marca y transparencia, y escala nítido (no se
+// rasteriza como haría el componente <Image>, que aplana el fondo).
+import logoSvg from '../assets/logo-inkttex.svg?raw';
 
 interface Props {
   /** Cabecera con fondo sólido claro (para páginas de contenido). */
@@ -28,8 +30,8 @@ const nav = [
       ))}
     </ul>
 
-    <a class="brand" href="/" aria-label="KULT inicio">
-      <Image src={logo} alt="KULT" class="brand-logo" width={48} height={48} />
+    <a class="brand" href="/" aria-label="Inkttex inicio">
+      <span class="brand-logo" role="img" aria-label="Inkttex" set:html={logoSvg}></span>
     </a>
 
     <ul class="actions">
@@ -60,6 +62,24 @@ const nav = [
     height: var(--header-h);
     display: flex;
     align-items: center;
+    transition: background 0.35s ease, backdrop-filter 0.35s ease,
+      border-color 0.35s ease, box-shadow 0.35s ease;
+  }
+
+  /* Estado por defecto = ya se hizo scroll: fondo glass (oscuro translúcido +
+     desenfoque). Garantiza que la parte blanca del logo y los iconos blancos
+     mantengan contraste al pasar por encima de secciones claras/blancas. */
+  .header:not(.at-top):not(.solid) {
+    background: rgba(10, 12, 14, 0.55);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  /* En el top de la página (sobre el hero) el header es transparente con un
+     ligero degradado para dar profundidad al contenido. */
+  .header.at-top:not(.solid) {
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
   }
 
@@ -73,10 +93,6 @@ const nav = [
   .header.solid .nav-links a,
   .header.solid .icon-btn {
     color: #12120f;
-  }
-
-  .header.solid .brand-logo {
-    filter: none;
   }
 
   .nav {
@@ -110,20 +126,41 @@ const nav = [
     display: inline-flex;
   }
 
+  /* El SVG del logo se embebe inline dentro de este span para conservar sus
+     colores de marca y transparencia. Fijamos la altura y el svg interno
+     mantiene su proporción. */
   .brand-logo {
-    width: 48px;
-    height: 48px;
-    filter: brightness(0) invert(1);
+    display: inline-flex;
+    height: 40px;
     transform-origin: center;
     transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
     will-change: transform;
+  }
+
+  .brand-logo :global(svg) {
+    height: 100%;
+    width: auto;
+    display: block;
+  }
+
+  /* La parte oscura del logo (clase .st0 del SVG: las letras "nkttex" y los
+     trazos negros del icono) transiciona de color según el fondo del header.
+     Por defecto (sobre el hero claro y en páginas con header sólido claro) se
+     mantiene oscura. Al hacer scroll, cuando el header toma fondo glass oscuro,
+     la pasamos a blanco para que contraste. */
+  .brand-logo :global(.st0) {
+    transition: fill 0.35s ease;
+  }
+
+  .header:not(.at-top):not(.solid) .brand-logo :global(.st0) {
+    fill: #ffffff;
   }
 
   /* En el top de la página el logo se muestra más grande; al scrollear se
      encoge al tamaño base. Escalamos con transform para no reflujar el layout
      del header (que conserva su altura). */
   .header.at-top .brand-logo {
-    transform: scale(1.5);
+    transform: scale(1.25);
   }
 
   .actions {

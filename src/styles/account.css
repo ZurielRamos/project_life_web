@@ -1,0 +1,385 @@
+/* ===== Cuenta del cliente: /perfil y /configuracion =====
+   Hoja global compartida. Todo va bajo `.account-page` para no chocar con
+   otras páginas, y al ser global también alcanza los elementos que se crean
+   con JS (chips de intereses). Paleta de marca Inkttex. */
+
+.account-page {
+  --acc-accent: #01b7bb;
+  --acc-accent-dark: #017a7d;
+  --acc-soft: rgba(1, 183, 187, 0.12);
+  --acc-purple: #9600fc;
+  --acc-gradient: linear-gradient(100deg, #01b7bb 0%, #01b7bb 40%, #9600fc 100%);
+
+  background: #f4f2ee;
+  color: #12120f;
+  min-height: 72vh;
+  padding: calc(var(--header-h) + 1.5rem) clamp(1rem, 4vw, 3rem) 4.5rem;
+}
+.account-page .account {
+  max-width: 780px;
+  margin: 0 auto;
+}
+.account-page .account[hidden] {
+  display: none;
+}
+
+/* --- Migas --- */
+.account-page .crumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #8a8a82;
+  margin-bottom: 1.5rem;
+}
+.account-page .crumbs a {
+  color: #6b6b63;
+  transition: color 0.15s ease;
+}
+.account-page .crumbs a:hover {
+  color: var(--acc-accent-dark);
+}
+.account-page .crumbs-current {
+  color: #12120f;
+  font-weight: 600;
+}
+
+/* --- Cabecera de la página --- */
+.account-page .account-head {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  margin-bottom: 1.75rem;
+}
+/* Anillo con el degradado de marca alrededor del avatar. */
+.account-page .account-avatar {
+  flex: none;
+  box-sizing: border-box;
+  width: 76px;
+  height: 76px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--acc-gradient);
+  box-shadow: 0 10px 24px -12px rgba(150, 0, 252, 0.6);
+}
+.account-page .account-avatar svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px #f4f2ee;
+}
+.account-page .account-title,
+.account-page .page-title {
+  font-family: var(--font-display, inherit);
+  font-size: clamp(1.5rem, 3.2vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.account-page .account-sub {
+  font-size: 0.92rem;
+  color: var(--acc-accent-dark);
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+.account-page .page-sub {
+  font-size: 0.92rem;
+  color: #6b6b63;
+  margin: 0.35rem 0 1.75rem;
+}
+
+/* --- Tarjetas --- */
+.account-page .account-card {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(18, 18, 15, 0.07);
+  border-radius: 22px;
+  padding: 1.9rem 1.9rem 1.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 18px 40px -26px rgba(18, 18, 15, 0.25);
+  margin-bottom: 1.25rem;
+}
+/* Franja de marca en el borde superior de cada tarjeta. */
+.account-page .account-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--acc-gradient);
+}
+.account-page .card-title {
+  font-family: var(--font-display, inherit);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+.account-page .card-hint {
+  font-size: 0.83rem;
+  color: #8a8a82;
+  margin: 0.3rem 0 1.4rem;
+}
+
+/* --- Alertas --- */
+.account-page .form-alert {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #9f1239;
+  background: rgba(159, 18, 57, 0.08);
+  border: 1px solid rgba(159, 18, 57, 0.18);
+}
+.account-page .form-alert[hidden] {
+  display: none;
+}
+
+/* --- Formulario --- */
+.account-page .grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.account-page .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3f3f3a;
+}
+.account-page .field.col2 {
+  grid-column: span 2;
+}
+.account-page .field input,
+.account-page .field select {
+  font: inherit;
+  font-weight: 500;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(18, 18, 15, 0.16);
+  border-radius: 12px;
+  background: #fff;
+  color: #12120f;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.account-page .field input::placeholder {
+  color: #a3a39b;
+}
+.account-page .field input:hover:not(:disabled),
+.account-page .field select:hover {
+  border-color: rgba(1, 183, 187, 0.6);
+}
+.account-page .field input:focus,
+.account-page .field select:focus {
+  outline: none;
+  border-color: var(--acc-accent);
+  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+}
+.account-page .field input:disabled {
+  background: #f4f2ee;
+  color: #8a8a82;
+  cursor: not-allowed;
+}
+
+/* --- Intereses (chips) --- */
+.account-page .interests {
+  margin-top: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.account-page .interests-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3f3f3a;
+}
+.account-page .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.account-page .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgba(18, 18, 15, 0.16);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.account-page .chip input {
+  margin: 0;
+  accent-color: var(--acc-accent);
+}
+.account-page .chip:hover {
+  border-color: var(--acc-accent);
+}
+.account-page .chip:has(input:checked) {
+  border-color: var(--acc-accent);
+  background: var(--acc-soft);
+  color: var(--acc-accent-dark);
+  font-weight: 600;
+}
+
+/* --- Acciones --- */
+.account-page .actions {
+  margin-top: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.account-page .btn-primary {
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.85rem 1.7rem;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--acc-gradient);
+  box-shadow: 0 10px 24px -10px rgba(150, 0, 252, 0.55);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.account-page .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.account-page .btn-primary:focus-visible {
+  outline: 3px solid rgba(1, 183, 187, 0.4);
+  outline-offset: 2px;
+}
+.account-page .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.account-page .saved {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--acc-accent-dark);
+}
+.account-page .saved[hidden] {
+  display: none;
+}
+
+/* --- Filas de configuración --- */
+.account-page .setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.1rem 0;
+}
+.account-page .setting-row + .setting-row {
+  border-top: 1px solid rgba(18, 18, 15, 0.07);
+}
+.account-page .account-card .card-title + .setting-row {
+  padding-top: 0.6rem;
+}
+.account-page .setting-name {
+  font-size: 0.96rem;
+  font-weight: 600;
+}
+.account-page .setting-desc {
+  font-size: 0.83rem;
+  color: #6b6b63;
+  margin-top: 0.2rem;
+  line-height: 1.45;
+}
+
+/* Switch accesible: checkbox transparente encima de la pista visual. */
+.account-page .switch {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  cursor: pointer;
+}
+.account-page .switch input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.account-page .switch-track {
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(18, 18, 15, 0.2);
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  transition: background 0.2s ease;
+}
+.account-page .switch-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+.account-page .switch input:checked + .switch-track {
+  background: var(--acc-accent);
+}
+.account-page .switch input:checked + .switch-track .switch-thumb {
+  transform: translateX(20px);
+}
+.account-page .switch input:focus-visible + .switch-track {
+  outline: 3px solid rgba(1, 183, 187, 0.4);
+  outline-offset: 2px;
+}
+.account-page .switch input:disabled + .switch-track {
+  opacity: 0.55;
+}
+
+/* Botones secundarios. */
+.account-page .btn-ghost,
+.account-page .btn-danger {
+  flex: none;
+  border-radius: 999px;
+  padding: 0.6rem 1.2rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.account-page .btn-ghost {
+  border: 1px solid var(--acc-accent);
+  color: var(--acc-accent-dark);
+  background: transparent;
+}
+.account-page .btn-ghost:hover {
+  background: var(--acc-soft);
+}
+.account-page .btn-danger {
+  border: 1px solid rgba(159, 18, 57, 0.3);
+  color: #9f1239;
+  background: rgba(159, 18, 57, 0.06);
+}
+.account-page .btn-danger:hover {
+  background: rgba(159, 18, 57, 0.12);
+}
+
+@media (max-width: 560px) {
+  .account-page .account-card {
+    padding: 1.5rem 1.25rem;
+  }
+  .account-page .grid {
+    grid-template-columns: 1fr;
+  }
+  .account-page .field.col2 {
+    grid-column: span 1;
+  }
+  .account-page .setting-row {
+    flex-wrap: wrap;
+  }
+}

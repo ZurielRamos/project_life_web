@@ -1,0 +1,213 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/account.css';
+---
+
+<Layout title="Mi perfil — Inkttex" noindex>
+  <Header solid />
+
+  <main class="account-page">
+    <div class="account" data-account hidden>
+    <nav class="crumbs" aria-label="Ruta">
+      <a href="/">Inicio</a>
+      <span>/</span>
+      <span class="crumbs-current">Mi perfil</span>
+    </nav>
+
+    <header class="account-head">
+      <span class="account-avatar" data-account-avatar></span>
+      <div>
+        <h1 class="account-title" data-account-name>Mi perfil</h1>
+        <p class="account-sub" data-account-phone></p>
+      </div>
+    </header>
+
+    <form class="account-card" data-profile-form novalidate>
+      <h2 class="card-title">Datos personales</h2>
+      <p class="card-hint">
+        Tu celular es tu usuario y no se puede cambiar aquí.
+      </p>
+
+      <p class="form-alert" data-alert hidden></p>
+
+      <div class="grid">
+        <label class="field col2">
+          <span>Nombre completo</span>
+          <input type="text" name="name" autocomplete="name" required />
+        </label>
+        <label class="field col2">
+          <span>Celular</span>
+          <input type="tel" name="phone" disabled />
+        </label>
+        <label class="field col2">
+          <span>Correo electrónico</span>
+          <input type="email" name="email" autocomplete="email" placeholder="Opcional" />
+        </label>
+        <label class="field">
+          <span>Ciudad</span>
+          <input type="text" name="city" autocomplete="address-level2" placeholder="Opcional" />
+        </label>
+        <label class="field">
+          <span>Género</span>
+          <select name="gender">
+            <option value="">Prefiero no decir</option>
+            <option value="female">Femenino</option>
+            <option value="male">Masculino</option>
+            <option value="other">Otro</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="interests">
+        <span class="interests-label">Tus intereses</span>
+        <div class="chips" data-chips></div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary" data-save>Guardar cambios</button>
+        <span class="saved" data-saved hidden>Guardado ✓</span>
+      </div>
+    </form>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+
+<script>
+  import { createAvatar } from '@dicebear/core';
+  import { initials } from '@dicebear/collection';
+  import {
+    fetchCurrentCustomer,
+    isCustomerLoggedIn,
+    updateCustomerProfile,
+    INTEREST_OPTIONS,
+    type CustomerProfile,
+  } from '../lib/customer';
+
+  async function initProfilePage() {
+    const root = document.querySelector<HTMLElement>('[data-account]');
+    if (!root) return;
+    // Evita inicializar dos veces (DOMContentLoaded + astro:page-load).
+    if (root.dataset.ready === '1') return;
+    root.dataset.ready = '1';
+
+    // Protección: sin sesión, al inicio.
+    if (!isCustomerLoggedIn()) {
+      window.location.href = '/';
+      return;
+    }
+
+    // Perfil fresco desde la API (si la sesión expiró, fetchCurrentCustomer
+    // limpia la sesión y devuelve null).
+    const profile = await fetchCurrentCustomer();
+    if (!profile) {
+      window.location.href = '/';
+      return;
+    }
+
+    root.hidden = false;
+
+    // Avatar + cabecera.
+    const avatarEl = root.querySelector<HTMLElement>('[data-account-avatar]');
+    if (avatarEl) {
+      avatarEl.innerHTML = createAvatar(initials, {
+        seed: profile.name || 'Mi perfil',
+        radius: 50,
+        fontWeight: 600,
+      }).toString();
+    }
+    const nameEl = root.querySelector<HTMLElement>('[data-account-name]');
+    const phoneEl = root.querySelector<HTMLElement>('[data-account-phone]');
+    if (nameEl) nameEl.textContent = profile.name || 'Mi perfil';
+    if (phoneEl) phoneEl.textContent = profile.phone;
+
+    const form = root.querySelector<HTMLFormElement>('[data-profile-form]');
+    if (!form) return;
+
+    // Precarga.
+    (form.elements.namedItem('name') as HTMLInputElement).value =
+      profile.name ?? '';
+    (form.elements.namedItem('phone') as HTMLInputElement).value =
+      profile.phone ?? '';
+    (form.elements.namedItem('email') as HTMLInputElement).value =
+      profile.email ?? '';
+    (form.elements.namedItem('city') as HTMLInputElement).value =
+      profile.city ?? '';
+    (form.elements.namedItem('gender') as HTMLSelectElement).value =
+      profile.gender ?? '';
+
+    // Chips de intereses.
+    const chipsWrap = root.querySelector<HTMLElement>('[data-chips]');
+    if (chipsWrap) {
+      const set = new Set(profile.interests ?? []);
+      chipsWrap.innerHTML = INTEREST_OPTIONS.map(
+        (o) =>
+          `<label class="chip"><input type="checkbox" value="${o.value}" ${
+            set.has(o.value) ? 'checked' : ''
+          } /><span>${o.label}</span></label>`,
+      ).join('');
+    }
+
+    const alertEl = root.querySelector<HTMLElement>('[data-alert]');
+    const savedEl = root.querySelector<HTMLElement>('[data-saved]');
+    const saveBtn = root.querySelector<HTMLButtonElement>('[data-save]');
+
+    const setAlert = (msg: string | null) => {
+      if (!alertEl) return;
+      alertEl.textContent = msg ?? '';
+      alertEl.hidden = !msg;
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setAlert(null);
+      if (savedEl) savedEl.hidden = true;
+      const fd = new FormData(form);
+      const interests = Array.from(
+        chipsWrap?.querySelectorAll<HTMLInputElement>('input:checked') ?? [],
+      ).map((i) => i.value);
+      const str = (k: string) => {
+        const v = (fd.get(k) as string | null)?.trim();
+        return v ? v : undefined;
+      };
+
+      if (saveBtn) saveBtn.disabled = true;
+      try {
+        const updated = await updateCustomerProfile({
+          name: (fd.get('name') as string).trim(),
+          email: str('email'),
+          city: str('city'),
+          gender: str('gender') as CustomerProfile['gender'] | undefined,
+          interests,
+        });
+        // Refresca la cabecera de la página con el nombre actualizado.
+        if (nameEl) nameEl.textContent = updated.name;
+        if (avatarEl) {
+          avatarEl.innerHTML = createAvatar(initials, {
+            seed: updated.name,
+            radius: 50,
+            fontWeight: 600,
+          }).toString();
+        }
+        if (savedEl) savedEl.hidden = false;
+      } catch (err) {
+        setAlert(
+          err instanceof Error ? err.message : 'No se pudo guardar el perfil.',
+        );
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProfilePage);
+  } else {
+    initProfilePage();
+  }
+  document.addEventListener('astro:page-load', initProfilePage);
+</script>

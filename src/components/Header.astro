@@ -3,6 +3,7 @@
 // conserva sus colores de marca y transparencia, y escala nítido (no se
 // rasteriza como haría el componente <Image>, que aplana el fondo).
 import logoSvg from '../assets/logo-inkttex.svg?raw';
+const store = Astro.locals.store;
 
 interface Props {
   /** Cabecera con fondo sólido claro (para páginas de contenido). */
@@ -30,8 +31,16 @@ const nav = [
       ))}
     </ul>
 
-    <a class="brand" href="/" aria-label="Inkttex inicio">
-      <span class="brand-logo" role="img" aria-label="Inkttex" set:html={logoSvg}></span>
+    <a class="brand" href="/" aria-label={`${store?.name ?? 'Inkttex'} inicio`}>
+      {store ? (
+        store.logoUrl ? (
+          <img class="brand-logo store-brand-logo" src={store.logoUrl} alt={store.name} />
+        ) : (
+          <span class="brand-logo store-brand-name">{store.name}</span>
+        )
+      ) : (
+        <span class="brand-logo" role="img" aria-label="Inkttex" set:html={logoSvg}></span>
+      )}
     </a>
 
     <ul class="actions">
@@ -50,11 +59,89 @@ const nav = [
           </svg>
         </a>
       </li>
+      <!-- Botón de usuario: siempre visible. Sin sesión muestra un icono de
+           usuario y un menú con "Iniciar sesión"; con sesión, el avatar y el
+           menú de cuenta. El script alterna los dos estados. -->
+      <li class="user-menu" data-user-menu>
+        <button type="button" class="icon-btn user-btn" data-user-toggle aria-label="Mi cuenta" aria-haspopup="true" aria-expanded="false">
+          <svg class="user-icon" data-user-icon viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="12" cy="8" r="3.6"></circle>
+            <path d="M4.8 20.2c0-3.6 3.2-6 7.2-6s7.2 2.4 7.2 6"></path>
+          </svg>
+          <span class="user-avatar" data-user-avatar hidden></span>
+        </button>
+        <div class="user-dropdown" data-user-dropdown hidden role="menu">
+          <!-- Invitado -->
+          <div data-user-guest>
+            <div class="user-dropdown-guest-head">
+              <p class="user-dropdown-name">Bienvenido</p>
+              <p class="user-dropdown-phone">Inicia sesión para ver tu diseño completo.</p>
+            </div>
+            <button type="button" class="user-dropdown-item user-dropdown-login" data-user-login role="menuitem">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7">
+                <path d="M15 17l5-5-5-5"></path>
+                <line x1="20" y1="12" x2="8" y2="12"></line>
+                <path d="M12 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6"></path>
+              </svg>
+              Iniciar sesión
+            </button>
+          </div>
+
+          <!-- Con sesión -->
+          <div data-user-logged hidden>
+          <div class="user-dropdown-head">
+            <span class="user-dropdown-avatar" data-user-avatar-lg></span>
+            <div class="user-dropdown-info">
+              <p class="user-dropdown-name" data-user-name></p>
+              <p class="user-dropdown-phone" data-user-phone></p>
+            </div>
+          </div>
+
+          <nav class="user-dropdown-nav">
+            <a href="/perfil" class="user-dropdown-item" role="menuitem">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7">
+                <circle cx="12" cy="8" r="3.4"></circle>
+                <path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"></path>
+              </svg>
+              Mi perfil
+            </a>
+            <a href="/configuracion" class="user-dropdown-item" role="menuitem">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"></path>
+              </svg>
+              Configuración
+            </a>
+          </nav>
+
+          <button type="button" class="user-dropdown-item user-dropdown-logout" data-user-logout role="menuitem">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M16 17l5-5-5-5"></path>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+              <path d="M12 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"></path>
+            </svg>
+            Cerrar sesión
+          </button>
+          </div>
+        </div>
+      </li>
     </ul>
   </nav>
 </header>
 
 <style>
+  .store-brand-logo {
+    object-fit: contain;
+    max-width: 100%;
+  }
+  .store-brand-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--fg);
+    white-space: nowrap;
+  }
+
   .header {
     position: fixed;
     inset: 0 0 auto 0;
@@ -186,6 +273,174 @@ const nav = [
     opacity: 0.7;
   }
 
+  /* --- Botón / menú de usuario --- */
+  .user-menu {
+    position: relative;
+    display: inline-flex;
+  }
+    .user-btn {
+    opacity: 1;
+    padding: 0;
+  }
+  /* Avatar: contenedor circular que aloja el SVG generado por DiceBear
+     (estilo "initials"): las iniciales ya vienen perfectamente centradas
+     sobre un fondo de color derivado del nombre. */
+  .user-avatar,
+  .user-dropdown-avatar {
+    display: block;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.06);
+  }
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.5);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .header.solid .user-avatar {
+    box-shadow: 0 0 0 1.5px rgba(18, 18, 15, 0.12);
+  }
+  .user-btn:hover .user-avatar {
+    transform: scale(1.06);
+  }
+  .user-avatar :global(svg),
+  .user-dropdown-avatar :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .user-dropdown {
+    position: absolute;
+    top: calc(100% + 0.7rem);
+    right: 0;
+    min-width: 248px;
+    background: #fff;
+    color: #12120f;
+    border: 1px solid rgba(18, 18, 15, 0.06);
+    border-radius: 18px;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 24px 56px -18px rgba(0, 0, 0, 0.4);
+    padding: 0.4rem;
+    z-index: 60;
+    animation: user-dropdown-in 0.16s ease;
+    transform-origin: top right;
+  }
+  @keyframes user-dropdown-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+  }
+  .user-dropdown[hidden] {
+    display: none;
+  }
+  /* Cabecera del menú: avatar + nombre/celular. */
+  .user-dropdown-head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem 0.75rem 0.85rem;
+    border-bottom: 1px solid rgba(18, 18, 15, 0.07);
+    margin-bottom: 0.3rem;
+  }
+  .user-dropdown-avatar {
+    flex: none;
+    width: 40px;
+    height: 40px;
+  }
+  .user-dropdown-info {
+    min-width: 0;
+  }
+  .user-dropdown-name {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .user-dropdown-phone {
+    margin: 0.1rem 0 0;
+    font-size: 0.78rem;
+    color: #6b6b63;
+  }
+  /* [hidden] debe ganar sobre display:block/flex de los contenedores. */
+  .user-avatar[hidden],
+  [data-user-guest][hidden],
+  [data-user-logged][hidden] {
+    display: none;
+  }
+  .user-icon {
+    display: block;
+  }
+
+  /* Cabecera del estado invitado. */
+  .user-dropdown-guest-head {
+    padding: 0.7rem 0.75rem 0.85rem;
+    border-bottom: 1px solid rgba(18, 18, 15, 0.07);
+    margin-bottom: 0.3rem;
+    max-width: 240px;
+  }
+  .user-dropdown-guest-head .user-dropdown-phone {
+    white-space: normal;
+    line-height: 1.35;
+  }
+  .user-dropdown-login {
+    font-weight: 600;
+  }
+  .user-dropdown-login svg {
+    color: #017a7d;
+  }
+
+  .user-dropdown-nav {
+    display: flex;
+    flex-direction: column;
+  }
+  /* Item de menú (enlaces + logout): misma base, hover suave. */
+  .user-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    padding: 0.6rem 0.7rem;
+    border-radius: 11px;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: #12120f;
+    background: transparent;
+    text-align: left;
+    transition: background 0.14s ease, color 0.14s ease;
+  }
+  .user-dropdown-item:hover {
+    background: rgba(1, 183, 187, 0.1);
+    color: #017a7d;
+  }
+  .user-dropdown-item svg {
+    flex: none;
+    color: #017a7d;
+  }
+  /* Logout: separador arriba y color de peligro. */
+  .user-dropdown-logout {
+    margin-top: 0.3rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgba(18, 18, 15, 0.07);
+    border-radius: 0 0 11px 11px;
+    color: #9f1239;
+    font-weight: 600;
+  }
+  .user-dropdown-logout svg {
+    color: #9f1239;
+  }
+  .user-dropdown-logout:hover {
+    background: rgba(159, 18, 57, 0.08);
+  }
+
   /* Páginas que piden ocultar el header en mobile (p. ej. detalle de producto).
      Usa el mismo breakpoint que el layout mobile del PDP (760px). */
   @media (max-width: 760px) {
@@ -213,6 +468,107 @@ const nav = [
 </style>
 
 <script>
+  import { createAvatar } from '@dicebear/core';
+  import { initials } from '@dicebear/collection';
+  import {
+    getCustomerProfile,
+    isCustomerLoggedIn,
+    clearCustomerSession,
+  } from '../lib/customer';
+
+  /** Genera el SVG del avatar (iniciales centradas) a partir del nombre. */
+  function avatarSvg(name: string): string {
+    return createAvatar(initials, {
+      seed: name,
+      radius: 50,
+      fontWeight: 600,
+      fontSize: 42,
+    }).toString();
+  }
+
+  // Menú de usuario: siempre visible. Alterna entre invitado (icono +
+  // "Iniciar sesión") y sesión iniciada (avatar + menú de cuenta).
+  function initUserMenu() {
+    const menu = document.querySelector<HTMLElement>('[data-user-menu]');
+    if (!menu) return;
+    // Evita registrar los listeners dos veces.
+    if (menu.dataset.ready === '1') return;
+    menu.dataset.ready = '1';
+
+    const toggle = menu.querySelector<HTMLButtonElement>('[data-user-toggle]');
+    const dropdown = menu.querySelector<HTMLElement>('[data-user-dropdown]');
+    const iconEl = menu.querySelector<HTMLElement>('[data-user-icon]');
+    const avatarEl = menu.querySelector<HTMLElement>('[data-user-avatar]');
+    const avatarLgEl =
+      menu.querySelector<HTMLElement>('[data-user-avatar-lg]');
+    const guestEl = menu.querySelector<HTMLElement>('[data-user-guest]');
+    const loggedEl = menu.querySelector<HTMLElement>('[data-user-logged]');
+    const nameEl = menu.querySelector<HTMLElement>('[data-user-name]');
+    const phoneEl = menu.querySelector<HTMLElement>('[data-user-phone]');
+    const loginBtn = menu.querySelector<HTMLButtonElement>('[data-user-login]');
+    const logoutBtn =
+      menu.querySelector<HTMLButtonElement>('[data-user-logout]');
+
+    const loggedIn = isCustomerLoggedIn();
+
+    // Estado visual según haya sesión o no.
+    if (iconEl) iconEl.style.display = loggedIn ? 'none' : '';
+    if (avatarEl) avatarEl.hidden = !loggedIn;
+    if (guestEl) guestEl.hidden = loggedIn;
+    if (loggedEl) loggedEl.hidden = !loggedIn;
+
+    if (loggedIn) {
+      const profile = getCustomerProfile();
+      const name = profile?.name?.trim() || 'Mi cuenta';
+      const svg = avatarSvg(name);
+      if (avatarEl) avatarEl.innerHTML = svg;
+      if (avatarLgEl) avatarLgEl.innerHTML = svg;
+      if (nameEl) nameEl.textContent = name;
+      if (phoneEl) phoneEl.textContent = profile?.phone ?? '';
+    }
+
+    const close = () => {
+      if (dropdown) dropdown.hidden = true;
+      toggle?.setAttribute('aria-expanded', 'false');
+    };
+    const open = () => {
+      if (dropdown) dropdown.hidden = false;
+      toggle?.setAttribute('aria-expanded', 'true');
+    };
+
+    toggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (dropdown?.hidden) open();
+      else close();
+    });
+    // Cierra al hacer clic fuera o con Escape.
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target as Node)) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+
+    // Invitado: abre el modal en la pestaña de inicio de sesión. Al
+    // autenticarse recarga para que el header y la página reflejen la sesión.
+    loginBtn?.addEventListener('click', async () => {
+      close();
+      const { openCustomerAuthModal } = await import(
+        '../lib/customer-auth-modal'
+      );
+      openCustomerAuthModal({
+        initialMode: 'login',
+        signupOrigin: window.location.pathname,
+        onSuccess: () => window.location.reload(),
+      });
+    });
+
+    logoutBtn?.addEventListener('click', () => {
+      clearCustomerSession();
+      window.location.reload();
+    });
+  }
+
   // Logo grande en el top de la página; al empezar a scrollear se encoge.
   // Alternamos la clase .at-top según la posición de scroll.
   function initHeaderScroll() {
@@ -238,11 +594,16 @@ const nav = [
     apply(); // estado inicial
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initHeaderScroll);
-  } else {
+  function initHeader() {
     initHeaderScroll();
+    initUserMenu();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeader);
+  } else {
+    initHeader();
   }
   // Navegación client-side de Astro.
-  document.addEventListener('astro:page-load', initHeaderScroll);
+  document.addEventListener('astro:page-load', initHeader);
 </script>

@@ -5,14 +5,31 @@ import Footer from '../../components/Footer.astro';
 import { getStorefrontDesign, formatPrice, FIT_META } from '../../lib/storefront';
 
 const slug = Astro.params.slug as string;
-const product = await getStorefrontDesign(slug);
+const product = await getStorefrontDesign(slug, Astro.locals.store?.slug);
 
 if (!product) {
   return Astro.redirect('/tienda', 302);
 }
 
-const price = formatPrice(product.priceCents, product.currency);
+// Precio por talla con fallback al precio base del producto. La talla
+// inicial (índice 0) define el precio mostrado al cargar.
+const sizePriceCents = (s: { priceCents: number | null }): number | null =>
+  s.priceCents ?? product.priceCents;
+const initialSize = product.sizes[0] ?? null;
+const price = formatPrice(
+  initialSize ? sizePriceCents(initialSize) : product.priceCents,
+  product.currency,
+);
 const subtitle = product.fit ? `${FIT_META[product.fit].label}` : null;
+
+// Guía de tallas: hay tabla si existen columnas y alguna talla con medidas.
+const sizeChartColumns = product.sizeChartColumns ?? [];
+const sizeUnit = product.sizeChartUnit ?? '';
+const hasSizeGuide =
+  sizeChartColumns.length > 0 &&
+  product.sizes.some(
+    (s) => s.measurements && Object.keys(s.measurements).length > 0,
+  );
 
 // WhatsApp: número destino (solo dígitos) y URL absoluta del producto.
 // El fallback asegura que, aunque falte la env, siempre haya número y el
@@ -82,6 +99,7 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
           <span class:list={['dot', { active: i === 0 }]}></span>
         ))}
       </div>
+
     </div>
 
     <!-- Panel flotante: cards ligeramente grises -->
@@ -111,6 +129,8 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
                 type="button"
                 class:list={['swatch', { active: i === 0 }]}
                 style={`--c:${c.hex ?? '#ccc'}`}
+                data-color-id={c.id ?? ''}
+                data-color-hex={c.hex ?? ''}
                 data-color-name={c.name ?? ''}
                 data-images={JSON.stringify(c.images)}
                 title={c.name ?? ''}
@@ -126,7 +146,11 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
         <div class="card-info">
           <div class="p-block-head">
             <span>Talla</span>
-            <button type="button" class="link-btn">Guía de tallas</button>
+            {hasSizeGuide && (
+              <button type="button" class="link-btn" data-size-guide-open>
+                Guía de tallas
+              </button>
+            )}
           </div>
           <div class="sizes" data-sizes>
             {product.sizes.map((s, i) => (
@@ -134,6 +158,10 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
                 type="button"
                 class:list={['size', { active: i === 0 }]}
                 data-size={s.name}
+                data-price={
+                  formatPrice(sizePriceCents(s), product.currency) ??
+                  'Consultar'
+                }
               >
                 {s.label ?? s.name}
               </button>
@@ -145,7 +173,7 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
       <!-- Card: compra (desktop en el panel; mobile anclada abajo via CSS) -->
       <div class="card-info card-buy" data-buy-card>
         <div class="p-buy">
-          <span class="p-price">{price ?? 'Consultar'}</span>
+          <span class="p-price" data-price-display>{price ?? 'Consultar'}</span>
           <button
             type="button"
             class="buy-btn"
@@ -163,13 +191,80 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
         </div>
         <p class="p-note">Te atendemos por WhatsApp para completar tu pedido.</p>
       </div>
+
+      <button type="button" class="custom-btn" data-custom-open>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>
+        </svg>
+        Crea tu propia camiseta
+      </button>
+      <script
+        type="application/json"
+        data-custom-payload
+        set:html={JSON.stringify({
+          customization: product.customization,
+          colors: product.colors,
+          productName: product.name,
+        })}
+      />
     </aside>
   </main>
+
+  {hasSizeGuide && (
+    <div class="sg-overlay" data-size-guide hidden>
+      <div class="sg-backdrop" data-size-guide-close></div>
+      <div class="sg-modal" role="dialog" aria-modal="true" aria-label="Guía de tallas">
+        <div class="sg-head">
+          <div>
+            <h2 class="sg-title">Guía de tallas</h2>
+            <p class="sg-sub">
+              Medidas en {sizeUnit || 'cm'}. {product.name}
+            </p>
+          </div>
+          <button type="button" class="sg-close" data-size-guide-close aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6 6 18M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="sg-table-wrap">
+          <table class="sg-table">
+            <thead>
+              <tr>
+                <th>Talla</th>
+                {sizeChartColumns.map((col) => (
+                  <th>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {product.sizes.map((s) => (
+                <tr>
+                  <td class="sg-size-name">{s.label ?? s.name}</td>
+                  {sizeChartColumns.map((col) => (
+                    <td>{s.measurements?.[col] ?? '—'}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )}
 
   <Footer />
 </Layout>
 
 <script>
+  import { renderCustomSession } from '../../lib/storefront';
+  import {
+    getCustomerToken,
+    isCustomerLoggedIn,
+    clearCustomerSession,
+  } from '../../lib/customer';
+  import type { StorefrontCustomization } from '../../lib/types';
+
   const root = document.querySelector<HTMLElement>('[data-pdp]');
   if (root) {
     const marquee = root.querySelector<HTMLElement>('[data-marquee]');
@@ -177,6 +272,38 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
     const dotsWrap = root.querySelector<HTMLElement>('[data-dots]');
     const swatches = root.querySelectorAll<HTMLButtonElement>('[data-swatches] .swatch');
     const label = root.querySelector<HTMLElement>('[data-color-label]');
+
+    // Estado del "diseño propio" activo (null = producto normal). Guarda lo
+    // necesario para re-renderizar la sesión al cambiar de color.
+    interface CustomState {
+      customization: StorefrontCustomization;
+      imageUrl: string;
+      placement: {
+        xPx: number;
+        yPx: number;
+        widthPx: number;
+        heightPx: number;
+        rotation?: number;
+      };
+      productName: string;
+      /** Nº total de mockups de la sesión (para el gate de registro). */
+      totalMockups: number;
+      /** Imágenes ya renderizadas por color (colorId o "__nocolor__"). */
+      cache: Record<string, string[]>;
+      /** Color activo cuando se hizo el preview gratis. */
+      previewColorId: string;
+      /** Hex del color del preview (para tintar). */
+      previewColorHex: string;
+      /** Primera imagen (preview gratis), para el gate. */
+      previewImage: string;
+    }
+    let customState: CustomState | null = null;
+
+    // Alterna el modo "diseño propio": cambia el texto del botón de compra.
+    const buyBtnEl = root.querySelector<HTMLButtonElement>('[data-buy] span');
+    const setCustomMode = (on: boolean) => {
+      if (buyBtnEl) buyBtnEl.textContent = on ? 'Comprar mi diseño' : 'Comprar';
+    };
 
     // --- Carrusel mobile (swipe) ---
     // Reconstruye las slides y los puntos para un color dado.
@@ -237,6 +364,111 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
       marquee.style.animation = '';
     };
 
+    // --- Gate de registro (crea tu propia camiseta) ---
+    // El gate NO es un overlay global: vive dentro de cada slide bloqueado
+    // del marquee. El marquee sigue animándose con normalidad.
+
+    /**
+     * Imágenes ORIGINALES del color activo (las del producto antes de
+     * personalizar). Se usan de fondo borroso en los slides bloqueados del
+     * gate, para insinuar que hay más vistas sin revelar el render propio.
+     */
+    const activeColorImages = (): string[] => {
+      const active = root.querySelector<HTMLElement>(
+        '[data-swatches] .swatch.active',
+      );
+      try {
+        const arr = JSON.parse(active?.dataset.images ?? '[]');
+        return Array.isArray(arr) ? (arr as string[]) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    /**
+     * Construye el marquee en modo GATE: la primera imagen (preview gratis,
+     * el render del diseño propio) se ve nítida; las demás posiciones usan las
+     * imágenes ORIGINALES del color (borrosas), cada una con su botón de
+     * registro centrado.
+     */
+    const buildGatedMarquee = (
+      firstImage: string,
+      total: number,
+      name: string,
+    ) => {
+      if (!marquee) return;
+      const originals = activeColorImages();
+      const count = Math.max(total, originals.length, 1);
+      const slides: string[] = [];
+      for (let i = 0; i < count; i++) {
+        if (i === 0) {
+          slides.push(
+            `<div class="slide"><img src="${firstImage}" alt="${name} ${i + 1}" loading="lazy" /></div>`,
+          );
+        } else {
+          // Slide bloqueado: imagen ORIGINAL del color (borrosa) + CTA.
+          const bg = originals[i] ?? originals[originals.length - 1] ?? firstImage;
+          slides.push(
+            `<div class="slide locked">` +
+              `<img src="${bg}" alt="${name} ${i + 1}" loading="lazy" />` +
+              `<button type="button" class="slide-gate-btn" data-gate-register>` +
+              `Regístrate para ver` +
+              `</button>` +
+              `</div>`,
+          );
+        }
+      }
+      // Duplicado para el bucle del marquee.
+      marquee.innerHTML = [...slides, ...slides].join('');
+      marquee.style.animation = 'none';
+      void marquee.offsetWidth;
+      marquee.style.setProperty('--count', String(count));
+      marquee.style.animation = '';
+      // El marquee sigue animándose normalmente (sin pausar).
+    };
+
+    /**
+     * Versión gate del carrusel mobile: primera imagen nítida (render propio),
+     * el resto son las originales del color borrosas con su botón de registro.
+     */
+    const buildGatedCarousel = (
+      firstImage: string,
+      total: number,
+      name: string,
+    ) => {
+      if (!carousel) return;
+      const originals = activeColorImages();
+      const count = Math.max(total, originals.length, 1);
+      const slides: string[] = [];
+      for (let i = 0; i < count; i++) {
+        if (i === 0) {
+          slides.push(
+            `<div class="carousel-slide"><img src="${firstImage}" alt="${name} ${i + 1}" loading="lazy" /></div>`,
+          );
+        } else {
+          const bg = originals[i] ?? originals[originals.length - 1] ?? firstImage;
+          slides.push(
+            `<div class="carousel-slide locked">` +
+              `<img src="${bg}" alt="${name} ${i + 1}" loading="lazy" />` +
+              `<button type="button" class="slide-gate-btn" data-gate-register>Regístrate para ver</button>` +
+              `</div>`,
+          );
+        }
+      }
+      carousel.innerHTML = slides.join('');
+      if (dotsWrap) {
+        dotsWrap.innerHTML = slides
+          .map((_, i) => `<span class="dot${i === 0 ? ' active' : ''}"></span>`)
+          .join('');
+      }
+      carousel.scrollTo({ left: 0 });
+    };
+
+    const clearGate = () => {
+      // Al desbloquear se reconstruye el marquee/carrusel con las imágenes
+      // reales, lo que elimina los slides bloqueados y sus botones.
+    };
+
     /**
      * Cambia las imágenes sin reiniciar la posición del slide: si el nuevo
      * color tiene el mismo número de imágenes, solo reemplaza los `src`
@@ -258,29 +490,338 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
       });
     };
 
+    // Overlay de carga sobre el escenario (para regenerar diseño propio).
+    const stageEl = root.querySelector<HTMLElement>('.stage');
+    const showStageLoader = (on: boolean) => {
+      if (!stageEl) return;
+      stageEl.classList.toggle('loading', on);
+    };
+
+    // Abre el modal de registro/login y, al autenticarse, ejecuta onDone.
+    const openAuth = async (onDone: () => void) => {
+      const { openCustomerAuthModal } = await import(
+        '../../lib/customer-auth-modal'
+      );
+      openCustomerAuthModal({
+        signupOrigin: window.location.pathname,
+        onSuccess: () => onDone(),
+      });
+    };
+
+    /**
+     * Renderiza la sesión COMPLETA de un color con sesión de cliente. Maneja
+     * la expiración (401 → reabrir login) y el tope por hora (403 → avisar).
+     * Devuelve las imágenes o null si no se pudo.
+     */
+    const renderFullColor = async (
+      colorId: string | undefined,
+      colorHex: string | undefined,
+    ): Promise<string[] | null> => {
+      if (!customState) return null;
+      const token = getCustomerToken();
+      if (!token) return null;
+      try {
+        const { images } = await renderCustomSession(
+          {
+            productId: customState.customization.productId,
+            sessionId: customState.customization.sessionId,
+            imageUrl: customState.imageUrl,
+            designSmartObjectUuid:
+              customState.customization.designSmartObjectUuid,
+            placement: customState.placement,
+            colorId,
+            colorHex,
+          },
+          token,
+        );
+        return images.length ? images : null;
+      } catch (err) {
+        const status = (err as { status?: number }).status;
+        if (status === 401) {
+          // Sesión expirada: limpiar y pedir login de nuevo.
+          clearCustomerSession();
+          throw err;
+        }
+        if (status === 403) {
+          window.alert(
+            err instanceof Error
+              ? err.message
+              : 'Alcanzaste el máximo de generaciones por hora.',
+          );
+          return null;
+        }
+        return null;
+      }
+    };
+
+    /**
+     * Genera (o reusa de caché) la sesión completa de un color en modo diseño
+     * propio y la pinta. Si la sesión expiró (401) reabre el login y reintenta.
+     */
+    const generateColor = async (
+      btn: HTMLButtonElement,
+      colorId: string,
+    ): Promise<void> => {
+      if (!customState) return;
+      const cached = customState.cache[colorId];
+      if (cached) {
+        buildMarquee(cached, customState.productName);
+        buildCarousel(cached, customState.productName);
+        return;
+      }
+      showStageLoader(true);
+      try {
+        const images = await renderFullColor(
+          btn.dataset.colorId || undefined,
+          btn.dataset.colorHex || undefined,
+        );
+        if (images && images.length > 0) {
+          customState.cache[colorId] = images;
+          buildMarquee(images, customState.productName);
+          buildCarousel(images, customState.productName);
+        }
+      } catch (err) {
+        // 401: sesión expirada → reabrir login y reintentar este color.
+        if ((err as { status?: number }).status === 401) {
+          showStageLoader(false);
+          await openAuth(() => void generateColor(btn, colorId));
+          return;
+        }
+      } finally {
+        showStageLoader(false);
+      }
+    };
+
+    /**
+     * Desbloquea la sesión completa del color del preview: renderiza todas las
+     * imágenes (requiere sesión), quita el gate y las pinta. Asume que ya hay
+     * sesión de cliente (la verifica el llamador o reabre login si 401).
+     */
+    const unlockFullImages = async (): Promise<void> => {
+      if (!customState) return;
+      showStageLoader(true);
+      try {
+        const colorId =
+          customState.previewColorId === '__nocolor__'
+            ? undefined
+            : customState.previewColorId;
+        const images = await renderFullColor(
+          colorId,
+          customState.previewColorHex || undefined,
+        );
+        if (images && images.length > 0) {
+          customState.cache[customState.previewColorId] = images;
+          clearGate();
+          buildMarquee(images, customState.productName);
+          buildCarousel(images, customState.productName);
+        }
+      } catch (err) {
+        if ((err as { status?: number }).status === 401) {
+          showStageLoader(false);
+          await openAuth(() => void unlockFullImages());
+          return;
+        }
+      } finally {
+        showStageLoader(false);
+      }
+    };
+
+    // Gate: los botones viven dentro de los slides bloqueados del marquee
+    // (se reconstruyen dinámicamente), así que se delega el click en el
+    // marquee. Al autenticarse, desbloquea todas las imágenes.
+    const onGateClick = async () => {
+      if (isCustomerLoggedIn()) {
+        await unlockFullImages();
+        return;
+      }
+      await openAuth(() => void unlockFullImages());
+    };
+    const delegateGate = (el: HTMLElement | null) => {
+      if (!el) return;
+      el.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest('[data-gate-register]')) {
+          e.preventDefault();
+          void onGateClick();
+        }
+      });
+    };
+    delegateGate(marquee);
+    delegateGate(carousel);
+
     swatches.forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
+        swatches.forEach((b) => b.classList.toggle('active', b === btn));
+        const colorName = btn.dataset.colorName ?? '';
+        if (label) label.textContent = colorName;
+
+        // Modo "diseño propio": muestra el color desde caché o lo genera.
+        if (customState) {
+          const colorId = btn.dataset.colorId || '__nocolor__';
+          // Caché: ese color ya se generó en esta sesión → reusar (0 renders).
+          const cached = customState.cache[colorId];
+          if (cached) {
+            buildMarquee(cached, customState.productName);
+            buildCarousel(cached, customState.productName);
+            return;
+          }
+          // Requiere sesión de cliente para renderizar la sesión completa.
+          if (!isCustomerLoggedIn()) {
+            await openAuth(() => void generateColor(btn, colorId));
+            return;
+          }
+          await generateColor(btn, colorId);
+          return;
+        }
+
+        // Producto normal: cambia a las imágenes pre-generadas del color.
         let images: string[] = [];
         try {
           images = JSON.parse(btn.dataset.images ?? '[]');
         } catch {
           images = [];
         }
-        swatches.forEach((b) => b.classList.toggle('active', b === btn));
-        const colorName = btn.dataset.colorName ?? '';
-        if (label) label.textContent = colorName;
         swapMarquee(images, colorName);
         buildCarousel(images, colorName);
       });
     });
 
+    const priceDisplay = root.querySelector<HTMLElement>('[data-price-display]');
     root.querySelectorAll<HTMLButtonElement>('[data-sizes] .size').forEach((btn) => {
       btn.addEventListener('click', () => {
         root
           .querySelectorAll('[data-sizes] .size')
           .forEach((b) => b.classList.toggle('active', b === btn));
+        // Actualiza el precio mostrado según la talla (fallback ya aplicado
+        // en el data-price del botón).
+        if (priceDisplay && btn.dataset.price) {
+          priceDisplay.textContent = btn.dataset.price;
+        }
       });
     });
+
+    // --- Modal Guía de tallas ---
+    const sizeGuide = document.querySelector<HTMLElement>('[data-size-guide]');
+    if (sizeGuide) {
+      const openSizeGuide = () => {
+        sizeGuide.hidden = false;
+        // Fuerza reflow para que la transición de entrada se aplique.
+        void sizeGuide.offsetWidth;
+        sizeGuide.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      };
+      const closeSizeGuide = () => {
+        sizeGuide.classList.remove('open');
+        document.body.style.overflow = '';
+        // Oculta tras la transición de salida.
+        window.setTimeout(() => {
+          sizeGuide.hidden = true;
+        }, 260);
+      };
+
+      root
+        .querySelectorAll<HTMLButtonElement>('[data-size-guide-open]')
+        .forEach((btn) => btn.addEventListener('click', openSizeGuide));
+      sizeGuide
+        .querySelectorAll<HTMLElement>('[data-size-guide-close]')
+        .forEach((el) => el.addEventListener('click', closeSizeGuide));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !sizeGuide.hidden) closeSizeGuide();
+      });
+    }
+
+    // --- Crea tu propia camiseta (modal cargado dinámicamente) ---
+    const customBtn = root.querySelector<HTMLButtonElement>('[data-custom-open]');
+    if (customBtn) {
+      customBtn.addEventListener('click', async () => {
+        const payloadEl = root.querySelector<HTMLElement>('[data-custom-payload]');
+        if (!payloadEl?.textContent) return;
+        let payload: {
+          customization:
+            | import('../../lib/types').StorefrontCustomization
+            | null;
+          colors: import('../../lib/types').StorefrontColor[];
+          productName: string;
+        };
+        try {
+          payload = JSON.parse(payloadEl.textContent);
+        } catch {
+          return;
+        }
+        // Sin datos de personalización no hay sobre qué renderizar.
+        if (!payload.customization) {
+          window.alert(
+            'Este producto no admite personalización por ahora.',
+          );
+          return;
+        }
+        customBtn.disabled = true;
+        try {
+          // Carga el modal + Konva solo ahora (no en el bundle inicial).
+          const { openCustomDesigner } = await import('../../lib/custom-designer');
+          openCustomDesigner({
+            customization: payload.customization,
+            productName: payload.productName,
+            // El color se toma del swatch activo en el detalle, leído al
+            // momento de generar (no hay selector dentro del modal).
+            getActiveColorId: () =>
+              root.querySelector<HTMLElement>('[data-swatches] .swatch.active')
+                ?.dataset.colorId || null,
+            getActiveColorHex: () =>
+              root.querySelector<HTMLElement>('[data-swatches] .swatch.active')
+                ?.dataset.colorHex || null,
+            onRendered: async ({
+              images,
+              totalMockups,
+              imageUrl,
+              placement,
+            }) => {
+              if (images.length === 0) return;
+              // Color con el que se generó (el activo al momento de generar).
+              const activeSwatch = root.querySelector<HTMLElement>(
+                '[data-swatches] .swatch.active',
+              );
+              const colorId = activeSwatch?.dataset.colorId || '__nocolor__';
+              const colorHex = activeSwatch?.dataset.colorHex || '';
+
+              // Guarda el estado del diseño propio (aún sin desbloquear).
+              customState = {
+                customization: payload.customization!,
+                imageUrl,
+                placement,
+                productName: payload.productName,
+                totalMockups: Math.max(totalMockups, images.length),
+                cache: {},
+                previewColorId: colorId,
+                previewColorHex: colorHex,
+                previewImage: images[0],
+              };
+              setCustomMode(true);
+
+              if (isCustomerLoggedIn()) {
+                // Ya tiene sesión: desbloquea directamente la sesión completa.
+                await unlockFullImages();
+              } else {
+                // Preview gratis: primera imagen nítida, resto borroso con un
+                // CTA de registro centrado en cada slide bloqueado.
+                buildGatedMarquee(
+                  images[0],
+                  customState.totalMockups,
+                  payload.productName,
+                );
+                buildGatedCarousel(
+                  images[0],
+                  customState.totalMockups,
+                  payload.productName,
+                );
+              }
+            },
+          });
+        } finally {
+          customBtn.disabled = false;
+        }
+      });
+    }
 
     // Botón volver: regresa en el historial o cae a /tienda si no hay.
     const backBtn = root.querySelector<HTMLButtonElement>('[data-back]');
@@ -304,11 +845,18 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
         const url = buyBtn.dataset.url ?? window.location.href;
 
         // Talla y color seleccionados (si existen en la página).
+        const activeSize =
+          root.querySelector<HTMLElement>('[data-sizes] .size.active');
         const size =
-          root.querySelector<HTMLElement>('[data-sizes] .size.active')?.dataset.size ??
-          root.querySelector<HTMLElement>('[data-sizes] .size.active')?.textContent?.trim() ??
+          activeSize?.dataset.size ??
+          activeSize?.textContent?.trim() ??
           '';
         const color = root.querySelector<HTMLElement>('[data-color-label]')?.textContent?.trim() ?? '';
+        // Precio: el de la talla activa (ya con fallback) o el mostrado.
+        const priceText =
+          activeSize?.dataset.price ??
+          root.querySelector<HTMLElement>('[data-price-display]')?.textContent?.trim() ??
+          '';
 
         // Ficha del producto para el mensaje.
         const lines = [
@@ -318,6 +866,7 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
           code ? `Código: ${code}` : '',
           color ? `Color: ${color}` : '',
           size ? `Talla: ${size}` : '',
+          priceText ? `Precio: ${priceText}` : '',
           '',
           url,
         ].filter(Boolean);
@@ -346,6 +895,85 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
     height: 100svh;
     overflow: hidden;
     background: #e9e7e1;
+  }
+
+  /* Loader al regenerar el diseño propio en otro color. */
+  .stage.loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(233, 231, 225, 0.65);
+    backdrop-filter: blur(1px);
+  }
+  .stage.loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 6;
+    width: 42px;
+    height: 42px;
+    margin: -21px 0 0 -21px;
+    border-radius: 50%;
+    border: 3px solid rgba(18, 18, 15, 0.2);
+    border-top-color: #12120f;
+    animation: stage-spin 0.8s linear infinite;
+  }
+  @keyframes stage-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Gate de registro: cada slide bloqueado se ve borroso y tiene su propio
+     botón centrado. El marquee sigue animándose con normalidad.
+     IMPORTANTE: estos slides se inyectan por JS (innerHTML), por lo que NO
+     llevan el atributo scoped de Astro. Hay que usar :global() para que las
+     reglas los alcancen. */
+  .marquee :global(.slide.locked) {
+    position: relative;
+  }
+  .marquee :global(.slide.locked img) {
+    filter: blur(14px) saturate(0.85);
+    transform: scale(1.06);
+  }
+  .marquee :global(.slide.locked)::after {
+    /* Velo sutil para resaltar el CTA sobre la imagen borrosa. */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(233, 231, 225, 0.18);
+    pointer-events: none;
+  }
+  .carousel :global(.carousel-slide.locked) {
+    position: relative;
+  }
+  .carousel :global(.carousel-slide.locked img) {
+    filter: blur(14px) saturate(0.85);
+    transform: scale(1.06);
+  }
+  :global(.slide-gate-btn) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: 0.8rem 1.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    background: #12120f;
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.55);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  :global(.slide-gate-btn:hover) {
+    opacity: 0.92;
+    transform: translate(-50%, -50%) translateY(-1px);
   }
 
   /* Marquee: tira horizontal que se desplaza en bucle */
@@ -724,6 +1352,335 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
   @media (prefers-reduced-motion: reduce) {
     .marquee {
       animation: none;
+    }
+  }
+
+  /* --- Botón "Crea tu propia camiseta" --- */
+  .custom-btn {
+    margin-top: 0.75rem;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    border: 1.5px solid #12120f;
+    background: transparent;
+    color: #12120f;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      color 0.18s ease;
+  }
+  .custom-btn:hover {
+    background: #12120f;
+    color: #fff;
+  }
+  .custom-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  /* --- Modal Guía de tallas --- */
+  .sg-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+  }
+  .sg-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 18, 15, 0.55);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    backdrop-filter: blur(2px);
+  }
+  .sg-modal {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fbfaf7;
+    color: #12120f;
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    transform: translateY(16px) scale(0.98);
+    opacity: 0;
+    transition:
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.28s ease;
+  }
+  .sg-overlay.open .sg-backdrop {
+    opacity: 1;
+  }
+  .sg-overlay.open .sg-modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  .sg-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.35rem 0.85rem;
+  }
+  .sg-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .sg-sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: #6b6b63;
+  }
+  .sg-close {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 0;
+    background: transparent;
+    color: #6b6b63;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+  .sg-close:hover {
+    background: rgba(18, 18, 15, 0.06);
+    color: #12120f;
+  }
+  .sg-table-wrap {
+    overflow: auto;
+    padding: 0 1.35rem 1.35rem;
+  }
+  .sg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .sg-table th,
+  .sg-table td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(18, 18, 15, 0.08);
+    white-space: nowrap;
+  }
+  .sg-table thead th {
+    position: sticky;
+    top: 0;
+    background: #fbfaf7;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b6b63;
+    font-weight: 600;
+  }
+  .sg-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .sg-size-name {
+    font-weight: 600;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sg-backdrop,
+    .sg-modal {
+      transition: none;
+    }
+  }
+</style>
+
+<style is:global>
+  /* --- Modal "Crea tu propia camiseta" (DOM inyectado por JS) --- */
+  .cd-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+  }
+  .cd-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 18, 15, 0.55);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .cd-modal {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    max-height: 88vh;
+    overflow: auto;
+    background: #fbfaf7;
+    color: #12120f;
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    transform: translateY(16px) scale(0.98);
+    opacity: 0;
+    transition:
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.28s ease;
+  }
+  .cd-overlay.open .cd-backdrop {
+    opacity: 1;
+  }
+  .cd-overlay.open .cd-modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  .cd-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.35rem 0.5rem;
+  }
+  .cd-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .cd-sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: #6b6b63;
+  }
+  .cd-close {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 0;
+    background: transparent;
+    color: #6b6b63;
+    cursor: pointer;
+  }
+  .cd-close:hover {
+    background: rgba(18, 18, 15, 0.06);
+    color: #12120f;
+  }
+  .cd-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.35rem 1.5rem;
+  }
+  .cd-stage-wrap {
+    position: relative;
+  }
+  .cd-stage {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f1efe9;
+  }
+  /* Overlay de carga centrado sobre el lienzo. */
+  .cd-upload-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .cd-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.1rem;
+    border-radius: 999px;
+    background: #12120f;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    transition: background 0.15s ease, transform 0.12s ease;
+  }
+  .cd-upload-overlay:hover .cd-upload-btn {
+    transform: translateY(-1px);
+  }
+  .cd-upload-overlay.loading {
+    pointer-events: none;
+    opacity: 0.8;
+  }
+  /* Con imagen cargada: el overlay no bloquea el lienzo; el botón queda
+     discreto abajo para "Cambiar imagen". */
+  .cd-upload-overlay.has-image {
+    inset: auto 0 0.5rem 0;
+    pointer-events: none;
+  }
+  .cd-upload-overlay.has-image .cd-upload-btn {
+    pointer-events: auto;
+    background: rgba(18, 18, 15, 0.82);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.78rem;
+  }
+  .cd-hint {
+    font-size: 0.72rem;
+    color: #8a8a80;
+    text-align: center;
+  }
+  .cd-generate {
+    width: 100%;
+    max-width: 340px;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 0;
+    background: #12120f;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  .cd-generate:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .cd-error {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #c0392b;
+  }
+  .cd-overlay.rendering .cd-modal {
+    pointer-events: none;
+  }
+  .cd-overlay.rendering .cd-stage-wrap::after {
+    content: 'Generando…';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(251, 250, 247, 0.72);
+    font-weight: 600;
+    border-radius: 12px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cd-backdrop,
+    .cd-modal {
+      transition: none;
     }
   }
 </style>

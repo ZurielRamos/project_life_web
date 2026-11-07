@@ -13,6 +13,10 @@ export interface StorefrontColor {
 export interface StorefrontSize {
   name: string;
   label: string | null;
+  /** Precio específico de la talla en centavos (null = usar precio base). */
+  priceCents: number | null;
+  /** Medidas por dimensión del size chart (claves = sizeChartColumns). */
+  measurements: Record<string, number>;
 }
 
 export interface StorefrontProduct {
@@ -28,9 +32,24 @@ export interface StorefrontProduct {
   cover: string | null;
   colors: StorefrontColor[];
   sizes: StorefrontSize[];
+  /** Dimensiones del size chart (columnas). */
+  sizeChartColumns: string[];
+  /** Unidad del size chart ("cm" | "inch"). */
+  sizeChartUnit: string | null;
   composition: string | null;
   careInstructions: string | null;
   createdAt: string;
+  /** Datos para "crea tu propia camiseta" (null si no personalizable). */
+  customization: StorefrontCustomization | null;
+}
+
+/** Datos para personalizar el producto con una imagen propia. */
+export interface StorefrontCustomization {
+  productId: string;
+  sessionId: string;
+  designSmartObjectUuid: string;
+  areaWidthPx: number;
+  areaHeightPx: number;
 }
 
 export interface StorefrontListResult {

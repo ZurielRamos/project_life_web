@@ -1,0 +1,844 @@
+/* ===== Modal de registro / login de clientes (ca-*) ===== */
+.ca-overlay {
+  /* Paleta de marca Inkttex (la misma del sitio). */
+  --ca-accent: #01b7bb;
+  --ca-accent-dark: #017a7d;
+  --ca-accent-soft: rgba(1, 183, 187, 0.12);
+  --ca-purple: #9600fc;
+  --ca-yellow: #fecc2b;
+  --ca-gradient: linear-gradient(100deg, #01b7bb 0%, #01b7bb 40%, #9600fc 100%);
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.ca-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 12, 10, 0.55);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+.ca-modal {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  background: #fbfaf7;
+  color: #12120f;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  padding: 1.75rem 1.5rem 1.75rem;
+  transform: translateY(16px) scale(0.98);
+  opacity: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease;
+}
+/* Franja de marca en el borde superior. */
+.ca-modal::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: var(--ca-gradient);
+}
+.ca-overlay.open .ca-backdrop {
+  opacity: 1;
+}
+.ca-overlay.open .ca-modal {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.ca-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(18, 18, 15, 0.06);
+  color: #12120f;
+  cursor: pointer;
+}
+.ca-close:hover {
+  background: rgba(18, 18, 15, 0.12);
+}
+.ca-head {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+.ca-logo {
+  display: inline-flex;
+  height: 38px;
+  margin-bottom: 0.9rem;
+}
+.ca-logo svg {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+.ca-title {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #12120f;
+}
+.ca-sub {
+  margin: 0.4rem auto 0;
+  max-width: 34ch;
+  font-size: 0.88rem;
+  color: #6b6b63;
+  line-height: 1.45;
+}
+.ca-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--ca-accent-soft);
+  border-radius: 999px;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+}
+.ca-tab {
+  flex: 1;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b6b63;
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ca-tab:hover:not(.active) {
+  color: var(--ca-accent-dark);
+}
+.ca-tab.active {
+  background: var(--ca-accent);
+  color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(1, 183, 187, 0.6);
+}
+.ca-error {
+  margin: 0 0 0.9rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #9f1239;
+  background: rgba(159, 18, 57, 0.08);
+  border: 1px solid rgba(159, 18, 57, 0.18);
+}
+.ca-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+/* El atributo [hidden] debe ganar sobre display:flex para alternar
+   correctamente entre registro y login. */
+.ca-form[hidden] {
+  display: none;
+}
+.ca-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.ca-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #3f3f3a;
+}
+.ca-field.ca-col2 {
+  grid-column: span 2;
+}
+.ca-field small {
+  font-weight: 400;
+  color: #8a8a82;
+}
+.ca-field input,
+.ca-field select {
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  min-height: 52px;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(18, 18, 15, 0.16);
+  border-radius: 12px;
+  background: #fff;
+  color: #12120f;
+}
+/* Placeholders claros (el color por defecto del navegador es muy oscuro). */
+.ca-field input::placeholder,
+.ca-phone-search::placeholder {
+  color: #b4b4ab;
+  opacity: 1;
+  font-weight: 400;
+}
+.ca-field input:focus,
+.ca-field select:focus {
+  outline: none;
+  border-color: var(--ca-accent);
+  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+}
+.ca-interests {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.ca-interests-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #3f3f3a;
+}
+.ca-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.ca-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgba(18, 18, 15, 0.16);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ca-chip input {
+  accent-color: var(--ca-accent);
+}
+.ca-chip:hover {
+  border-color: var(--ca-accent);
+}
+.ca-chip:has(input:checked) {
+  border-color: var(--ca-accent);
+  background: var(--ca-accent-soft);
+  color: var(--ca-accent-dark);
+  font-weight: 600;
+}
+.ca-password {
+  grid-column: span 2;
+}
+.ca-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  color: #3f3f3a;
+  line-height: 1.4;
+}
+.ca-consent input {
+  margin-top: 0.15rem;
+  accent-color: var(--ca-accent);
+}
+.ca-submit {
+  margin-top: 0.25rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  min-height: 54px;
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--ca-gradient);
+  box-shadow: 0 10px 24px -10px rgba(150, 0, 252, 0.55);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.ca-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.ca-submit:focus-visible {
+  outline: 3px solid rgba(1, 183, 187, 0.4);
+  outline-offset: 2px;
+}
+.ca-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@media (max-width: 520px) {
+  .ca-grid {
+    grid-template-columns: 1fr;
+  }
+  .ca-field.ca-col2,
+  .ca-password {
+    grid-column: span 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ca-backdrop,
+  .ca-modal {
+    transition: none;
+  }
+}
+
+/* ===== Contraseña con botón mostrar/ocultar ===== */
+.ca-pass {
+  position: relative;
+  display: flex;
+}
+.ca-pass input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+.ca-pass-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b6b63;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ca-pass-toggle:hover {
+  background: var(--ca-accent-soft);
+  color: var(--ca-accent-dark);
+}
+.ca-pass-toggle:focus-visible {
+  outline: 2px solid var(--ca-accent);
+  outline-offset: 1px;
+}
+/* Muestra el ojo tachado solo cuando la contraseña está visible. */
+.ca-pass-toggle .ca-eye-off {
+  display: none;
+}
+.ca-pass-toggle[aria-pressed='true'] .ca-eye {
+  display: none;
+}
+.ca-pass-toggle[aria-pressed='true'] .ca-eye-off {
+  display: block;
+}
+
+/* ===== Recordarme + olvidé mi contraseña ===== */
+.ca-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.ca-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: #3f3f3a;
+  cursor: pointer;
+  user-select: none;
+}
+.ca-remember input {
+  margin: 0;
+  accent-color: var(--ca-accent);
+}
+.ca-forgot {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ca-accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(1, 122, 125, 0.35);
+}
+.ca-forgot:hover {
+  color: var(--ca-purple);
+  text-decoration-color: var(--ca-purple);
+}
+
+/* ===== Verificación de OTP (paso 2) ===== */
+.ca-otp-hint {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  color: #6b6b63;
+  line-height: 1.45;
+}
+.ca-tabs[hidden] {
+  display: none;
+}
+.ca-otp {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+.ca-otp-cell {
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 1 / 1.15;
+  max-height: 64px;
+  padding: 0;
+  text-align: center;
+  font: inherit;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #12120f;
+  background: #fff;
+  border: 1.5px solid rgba(18, 18, 15, 0.16);
+  border-radius: 12px;
+  caret-color: var(--ca-accent);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ca-otp-cell:focus {
+  outline: none;
+  border-color: var(--ca-accent);
+  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+}
+.ca-otp-cell:disabled {
+  opacity: 0.6;
+}
+.ca-otp.invalid .ca-otp-cell {
+  border-color: #e11d48;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+}
+.ca-otp.shake {
+  animation: ca-shake 0.35s ease;
+}
+@keyframes ca-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ca-otp.shake {
+    animation: none;
+  }
+}
+.ca-otp-actions {
+  margin-top: 0.1rem;
+}
+.ca-link {
+  border: none;
+  background: transparent;
+  padding: 0.25rem 0;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ca-accent-dark);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(1, 122, 125, 0.35);
+}
+.ca-link:hover:not(:disabled) {
+  color: var(--ca-purple);
+  text-decoration-color: var(--ca-purple);
+}
+.ca-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ===== Teléfono con selector de indicativo ===== */
+.ca-phone {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.ca-phone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 52px;
+  padding: 0 0.8rem;
+  border: 1px solid rgba(18, 18, 15, 0.16);
+  border-radius: 12px;
+  background: #fff;
+  color: #12120f;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex: none;
+}
+.ca-phone-btn:hover {
+  border-color: var(--ca-accent);
+}
+.ca-phone-btn:focus-visible {
+  outline: none;
+  border-color: var(--ca-accent);
+  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+}
+.ca-phone-btn[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.ca-flag {
+  display: block;
+  width: 22px;
+  height: 16px;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(18, 18, 15, 0.12);
+  flex: none;
+}
+.ca-phone-input {
+  flex: 1;
+  min-width: 0;
+}
+.ca-phone-menu {
+  /* Vive en el overlay (fuera del modal con overflow); top/left/width los
+     calcula phone-field.ts. */
+  position: fixed;
+  z-index: 10;
+  /* Fuera de .ca-modal ya no hereda color ni fuente: se fijan aquí. */
+  color: #12120f;
+  font-family: inherit;
+  text-align: left;
+  background: #fff;
+  border: 1px solid rgba(18, 18, 15, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.3);
+  padding: 0.5rem;
+}
+.ca-phone-menu[hidden] {
+  display: none;
+}
+.ca-phone-search {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 0.4rem;
+  padding: 0.6rem 0.85rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: #12120f;
+  background: #fff;
+  border: 1px solid rgba(18, 18, 15, 0.16);
+  border-radius: 10px;
+}
+.ca-phone-search:focus {
+  outline: none;
+  border-color: var(--ca-accent);
+  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+}
+.ca-phone-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.ca-phone-opt {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.65rem;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ca-phone-opt:hover,
+.ca-phone-opt[aria-selected='true'] {
+  background: var(--ca-accent-soft);
+  color: #12120f;
+}
+.ca-phone-opt-name {
+  color: #12120f;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ca-phone-opt-dial {
+  color: #6b6b63;
+  font-variant-numeric: tabular-nums;
+}
+.ca-phone-empty {
+  padding: 0.75rem;
+  font-size: 0.88rem;
+  color: #6b6b63;
+}
+
+/* ===== Stepper de datos (clientes nuevos) ===== */
+.ca-step[hidden] {
+  display: none;
+}
+.ca-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.ca-progress-top {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b6b63;
+}
+.ca-progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ca-accent-soft);
+  overflow: hidden;
+}
+.ca-progress-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ca-gradient);
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ca-step-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+.ca-step-actions .ca-submit {
+  flex: 1;
+}
+.ca-back {
+  min-height: 54px;
+  padding: 0 1.25rem;
+  border: 1.5px solid rgba(18, 18, 15, 0.16);
+  border-radius: 999px;
+  background: #fff;
+  color: #3f3f3a;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.ca-back:hover {
+  border-color: var(--ca-accent);
+  color: var(--ca-accent-dark);
+}
+.ca-back[hidden] {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ca-progress-bar i {
+    transition: none;
+  }
+}
+
+/* ===== WhatsApp + acabado minimalista (sobrescribe lo anterior) ===== */
+.ca-wa {
+  flex: none;
+  display: block;
+}
+.ca-wa-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ca-wa-label .ca-wa {
+  color: #25d366;
+}
+.ca-wa-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  color: #1fa855;
+  background: rgba(37, 211, 102, 0.12);
+}
+.ca-otp-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  text-align: center;
+  margin-bottom: 0.4rem;
+}
+.ca-otp-intro .ca-otp-hint {
+  margin: 0;
+  color: #3f3f3a;
+}
+
+.ca-modal {
+  background: #fff;
+  border-radius: 24px;
+  padding: 2.25rem 1.75rem 1.75rem;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.35);
+}
+.ca-modal::before {
+  height: 3px;
+}
+.ca-head {
+  margin-bottom: 1.5rem;
+}
+.ca-logo {
+  height: 34px;
+  margin-bottom: 1.1rem;
+}
+.ca-title {
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+.ca-sub {
+  max-width: 32ch;
+  font-size: 0.88rem;
+  color: #8a8a82;
+}
+.ca-form {
+  gap: 1.1rem;
+}
+.ca-field {
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b6b63;
+}
+.ca-field input,
+.ca-field select,
+.ca-phone-btn {
+  border-color: rgba(18, 18, 15, 0.1);
+  background: #faf9f6;
+  border-radius: 14px;
+}
+.ca-field input:focus,
+.ca-field select:focus {
+  background: #fff;
+}
+.ca-otp-cell {
+  border-color: rgba(18, 18, 15, 0.1);
+  background: #faf9f6;
+  border-radius: 14px;
+}
+.ca-otp-cell:focus {
+  background: #fff;
+}
+.ca-remember {
+  font-size: 0.8rem;
+  color: #6b6b63;
+}
+.ca-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  box-shadow: 0 8px 20px -10px rgba(150, 0, 252, 0.45);
+}
+.ca-link {
+  color: #6b6b63;
+  text-decoration-color: rgba(107, 107, 99, 0.35);
+}
+.ca-close {
+  background: transparent;
+}
+.ca-close:hover {
+  background: rgba(18, 18, 15, 0.06);
+}
+
+/* ===== Casilla personalizada (role="checkbox") ===== */
+.ca-checkrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #6b6b63;
+  cursor: pointer;
+  user-select: none;
+}
+.ca-check {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 0.05rem;
+  padding: 0;
+  border: 1.5px solid rgba(18, 18, 15, 0.25);
+  border-radius: 6px;
+  background: #fff;
+  color: transparent;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.ca-checkrow:hover .ca-check {
+  border-color: var(--ca-accent);
+}
+.ca-check[aria-checked='true'] {
+  border-color: transparent;
+  background: var(--ca-accent);
+  color: #fff;
+}
+.ca-check svg {
+  transform: scale(0.6);
+  opacity: 0;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+.ca-check[aria-checked='true'] svg {
+  transform: scale(1);
+  opacity: 1;
+}
+.ca-check:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ca-check,
+  .ca-check svg {
+    transition: none;
+  }
+}
+
+/* ===== Nota de privacidad bajo el botón ===== */
+.ca-note {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: -0.2rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #8a8a82;
+  text-align: left;
+}
+.ca-note svg {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--ca-accent-dark);
+}
+.ca-sub {
+  max-width: 38ch;
+}
+
+/* Títulos con la fuente base del sitio (no la display manuscrita). */
+.ca-title {
+  font-family: var(--font, inherit);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}

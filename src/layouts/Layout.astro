@@ -14,7 +14,7 @@ interface Props {
 
 const DEFAULT_OG_IMAGE = '/og.jpg';
 
-const {
+let {
   // Título ~55 caracteres (rango recomendado 50-60 para buscadores).
   title = 'Inkttex — Tu idea, tu prenda | Ropa personalizada',
   // Description ~155 caracteres (rango recomendado para Google y social).
@@ -25,17 +25,66 @@ const {
   noindex = false,
 } = Astro.props;
 
+// Tienda resuelta por host (null en el sitio principal).
+const store = Astro.locals.store;
+let siteName = 'Inkttex';
+let faviconHref = logo.src;
+let faviconType = 'image/svg+xml';
+let htmlLang = 'es';
+let themeStyle: string | undefined;
+if (store) {
+  siteName = store.name;
+  // Los títulos de las páginas mencionan la marca principal: la cambiamos.
+  title =
+    Astro.props.title === undefined
+      ? (store.seoTitle ?? store.title ?? store.name)
+      : title.replaceAll('Inkttex', store.name);
+  if (Astro.props.description === undefined) {
+    description = store.seoDescription ?? store.description ?? description;
+  }
+  // Sin imagen OG propia de la página, usamos el logo de la tienda (si hay).
+  if (Astro.props.image === undefined && store.logoUrl) {
+    image = store.logoUrl;
+  }
+  if (store.faviconUrl) {
+    faviconHref = store.faviconUrl;
+    faviconType = '';
+  }
+  htmlLang = store.locale || 'es';
+  // El color viene validado como #RRGGBB por la API.
+  if (store.primaryColor && /^#[0-9a-fA-F]{6}$/.test(store.primaryColor)) {
+    themeStyle = `--accent:${store.primaryColor};--brand-teal:${store.primaryColor}`;
+  }
+}
+
 // Solo la imagen OG por defecto del sitio tiene dimensiones/formato conocidos
 // (1200×630 JPG). Para imágenes personalizadas (p. ej. fotos de producto
 // remotas) omitimos los hints de tamaño/tipo y dejamos que el scraper los
 // deduzca al descargarla.
 const isDefaultOgImage = image === DEFAULT_OG_IMAGE;
 
-// Base absoluta del sitio para URLs de canonical/OG. Preferimos `Astro.site`
-// (configurado con PUBLIC_SITE_URL), pero si no está definido usamos el ORIGEN
-// REAL de la request (Astro.url). Así la OG image apunta siempre al mismo host
-// que el usuario/scraper está visitando y no a un dominio que podría no existir.
-const siteUrl = Astro.site ?? new URL(Astro.url.origin);
+// Origen real de la request. Detrás de Vercel el host original llega en
+// x-forwarded-host; es el que ve el usuario (subdominio o dominio propio).
+const forwardedHost = Astro.request.headers.get('x-forwarded-host');
+const forwardedProto = Astro.request.headers
+  .get('x-forwarded-proto')
+  ?.split(',')[0]
+  ?.trim();
+const forwardedHostValue = forwardedHost?.split(',')[0]?.trim() ?? '';
+// Solo aceptamos un host bien formado; si no, caemos al origen de Astro.
+const requestOrigin = /^[a-z0-9.-]+(:\d+)?$/i.test(forwardedHostValue)
+  ? new URL(
+      `${forwardedProto === 'http' ? 'http' : 'https'}://${forwardedHostValue}`,
+    )
+  : new URL(Astro.url.origin);
+
+// Base absoluta del sitio para URLs de canonical/OG.
+// - En una TIENDA siempre usamos el origen real de la request: así cada
+//   tienda es canónica de sí misma aunque PUBLIC_SITE_URL esté definida
+//   (que apunta al sitio principal).
+// - En el sitio principal preferimos `Astro.site` (PUBLIC_SITE_URL) y, si no
+//   está definido, el origen de la request.
+const siteUrl = store ? requestOrigin : (Astro.site ?? requestOrigin);
 
 // URL canónica de la página actual (absoluta, sin query ni hash).
 const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
@@ -45,16 +94,14 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
 const ogImageURL = /^https?:\/\//.test(image)
   ? image
   : new URL(image, siteUrl).href;
-
-const siteName = 'Inkttex';
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang={htmlLang} style={themeStyle}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href={logo.src} />
+    <link rel="icon" type={faviconType || undefined} href={faviconHref} />
     <meta name="generator" content={Astro.generator} />
 
     <!-- SEO base -->

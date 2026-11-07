@@ -1,4 +1,8 @@
 ---
+// Las tiendas no usan el home de marca: van directo a su catálogo.
+if (Astro.locals.store) {
+  return Astro.redirect('/tienda');
+}
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';

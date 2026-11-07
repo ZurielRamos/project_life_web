@@ -21,8 +21,8 @@ const q = (Astro.url.searchParams.get('q') ?? '').trim();
 
 // Con texto => búsqueda semántica (por vectores). Sin texto => listado filtrado.
 const result = q
-  ? await searchStorefrontDesigns(q, { limit: 48 })
-  : await listStorefrontDesigns({ fit, limit: 48 });
+  ? await searchStorefrontDesigns(q, { limit: 48, store: Astro.locals.store?.slug })
+  : await listStorefrontDesigns({ fit, limit: 48, store: Astro.locals.store?.slug });
 
 const meta = fit ? FIT_META[fit] : null;
 const heading = q ? `Resultados` : meta?.title ?? 'Tienda';

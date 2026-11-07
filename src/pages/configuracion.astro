@@ -1,0 +1,140 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/account.css';
+---
+
+<Layout title="Configuración — Inkttex" noindex>
+  <Header solid />
+
+  <main class="account-page">
+    <div class="account" data-account hidden>
+    <nav class="crumbs" aria-label="Ruta">
+      <a href="/">Inicio</a>
+      <span>/</span>
+      <span class="crumbs-current">Configuración</span>
+    </nav>
+
+    <h1 class="page-title">Configuración</h1>
+    <p class="page-sub">Administra tus preferencias y tu sesión.</p>
+
+    <p class="form-alert" data-alert hidden></p>
+
+    <section class="account-card">
+      <h2 class="card-title">Comunicaciones</h2>
+
+      <div class="setting-row">
+        <div class="setting-text">
+          <p class="setting-name">Novedades y promociones</p>
+          <p class="setting-desc">
+            Recibe por WhatsApp lanzamientos de diseños, ofertas y novedades de
+            Inkttex.
+          </p>
+        </div>
+        <label class="switch" aria-label="Recibir novedades y promociones">
+          <input type="checkbox" data-marketing />
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+      </div>
+    </section>
+
+    <section class="account-card">
+      <h2 class="card-title">Cuenta</h2>
+
+      <div class="setting-row">
+        <div class="setting-text">
+          <p class="setting-name">Mi perfil</p>
+          <p class="setting-desc">Edita tu nombre, correo, ciudad e intereses.</p>
+        </div>
+        <a href="/perfil" class="btn-ghost">Editar</a>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-text">
+          <p class="setting-name">Cerrar sesión</p>
+          <p class="setting-desc">Salir de tu cuenta en este dispositivo.</p>
+        </div>
+        <button type="button" class="btn-danger" data-logout>Cerrar sesión</button>
+      </div>
+    </section>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+
+<script>
+  import {
+    clearCustomerSession,
+    fetchCurrentCustomer,
+    isCustomerLoggedIn,
+    updateMarketingOptIn,
+  } from '../lib/customer';
+
+  async function initSettingsPage() {
+    const root = document.querySelector<HTMLElement>('[data-account]');
+    if (!root) return;
+    // Evita inicializar dos veces (DOMContentLoaded + astro:page-load).
+    if (root.dataset.ready === '1') return;
+    root.dataset.ready = '1';
+
+    // Protección: sin sesión, al inicio.
+    if (!isCustomerLoggedIn()) {
+      window.location.href = '/';
+      return;
+    }
+    // Perfil fresco desde la API (si la sesión expiró, limpia y devuelve null).
+    const profile = await fetchCurrentCustomer();
+    if (!profile) {
+      window.location.href = '/';
+      return;
+    }
+    root.hidden = false;
+    const alertEl = root.querySelector<HTMLElement>('[data-alert]');
+    const marketing = root.querySelector<HTMLInputElement>('[data-marketing]');
+    const logout = root.querySelector<HTMLButtonElement>('[data-logout]');
+
+    const setAlert = (msg: string | null) => {
+      if (!alertEl) return;
+      alertEl.textContent = msg ?? '';
+      alertEl.hidden = !msg;
+    };
+
+    if (marketing) {
+      marketing.checked = !!profile.marketingOptIn;
+      marketing.addEventListener('change', async () => {
+        const desired = marketing.checked;
+        marketing.disabled = true;
+        setAlert(null);
+        try {
+          const updated = await updateMarketingOptIn(desired);
+          marketing.checked = updated.marketingOptIn;
+        } catch (err) {
+          // Revierte el switch si falló.
+          marketing.checked = !desired;
+          setAlert(
+            err instanceof Error
+              ? err.message
+              : 'No se pudo guardar la preferencia.',
+          );
+        } finally {
+          marketing.disabled = false;
+        }
+      });
+    }
+
+    logout?.addEventListener('click', () => {
+      clearCustomerSession();
+      window.location.href = '/';
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSettingsPage);
+  } else {
+    initSettingsPage();
+  }
+  document.addEventListener('astro:page-load', initSettingsPage);
+</script>

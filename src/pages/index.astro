@@ -1,8 +1,4 @@
 ---
-// Las tiendas no usan el home de marca: van directo a su catálogo.
-if (Astro.locals.store) {
-  return Astro.redirect('/tienda');
-}
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
@@ -65,7 +61,7 @@ import Footer from '../components/Footer.astro';
         kicker="Estilo en miniatura"
         title="Kids"
         href="/tienda?fit=kids"
-        cta="Descubre Mini Inkttex"
+        cta="Descubre la línea Kids"
       />
     </section>
   </main>

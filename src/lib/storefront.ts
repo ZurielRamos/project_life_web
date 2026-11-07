@@ -213,11 +213,12 @@ function emptyResult(opts: ListOptions): StorefrontListResult {
 export function formatPrice(
   cents: number | null,
   currency: string | null,
+  locale = 'es',
 ): string | null {
   if (cents == null) return null;
   const amount = cents / 100;
   try {
-    return new Intl.NumberFormat('es', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency ?? 'USD',
       minimumFractionDigits: 0,

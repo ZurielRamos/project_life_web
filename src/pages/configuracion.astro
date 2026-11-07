@@ -3,9 +3,11 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/account.css';
+import { getBrand } from '../lib/brand';
+const brand = getBrand(Astro.locals.store);
 ---
 
-<Layout title="Configuración — Inkttex" noindex>
+<Layout title={`Configuración — ${brand.name}`} noindex>
   <Header solid />
 
   <main class="account-page">
@@ -29,7 +31,7 @@ import '../styles/account.css';
           <p class="setting-name">Novedades y promociones</p>
           <p class="setting-desc">
             Recibe por WhatsApp lanzamientos de diseños, ofertas y novedades de
-            Inkttex.
+            {brand.name}.
           </p>
         </div>
         <label class="switch" aria-label="Recibir novedades y promociones">

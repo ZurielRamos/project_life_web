@@ -1,5 +1,7 @@
 ---
 import { bgSources } from '../lib/bg-images';
+import { getBrand } from '../lib/brand';
+const brand = getBrand(Astro.locals.store);
 
 // Imágenes ya optimizadas a AVIF en local (sin transformación en runtime).
 // Art direction: variante mobile (vertical) + desktop (apaisada).
@@ -34,7 +36,7 @@ const suggestions = [
     <!-- Fallback JPG para navegadores sin soporte AVIF. -->
     <img
       src={heroDesktop.fallback}
-      alt="Dos modelos con camisetas blancas personalizadas con el diseño «Tu diseño aquí» de Inkttex"
+      alt={`Dos modelos con camisetas blancas personalizadas con el diseño «Tu diseño aquí» de ${brand.name}`}
       class="hero-img"
       width="2752"
       height="1536"
@@ -46,7 +48,7 @@ const suggestions = [
 
   <div class="hero-inner">
     <div class="hero-copy">
-      <p class="hero-kicker">Tu idea, tu prenda</p>
+      {brand.tagline && <p class="hero-kicker">{brand.tagline}</p>}
       <h1 class="hero-title">
         Miles de diseños para tu ropa,<br class="br-desktop" />
         <span class="accent">o crea el tuyo</span>
@@ -245,7 +247,7 @@ const suggestions = [
   }
 
   .hero-title .accent {
-    color: #01b7bb;
+    color: var(--accent);
   }
 
   /* Salto de línea manual solo en pantallas anchas; en mobile dejamos que el
@@ -288,8 +290,8 @@ const suggestions = [
   }
 
   .search-box:focus-within {
-    border-color: rgba(1, 183, 187, 0.75);
-    box-shadow: 0 0 0 4px rgba(1, 183, 187, 0.22), 0 22px 60px rgba(0, 0, 0, 0.45);
+    border-color: rgba(var(--accent-rgb), 0.75);
+    box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.22), 0 22px 60px rgba(0, 0, 0, 0.45);
     transform: translateY(-2px);
   }
 
@@ -328,7 +330,7 @@ const suggestions = [
     border: 0;
     border-radius: 999px;
     padding: 0.95rem 1.7rem;
-    background: linear-gradient(100deg, #01b7bb 0%, #01b7bb 40%, #9600fc 100%);
+    background: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, #9600fc 100%);
     color: #ffffff;
     font-weight: 700;
     font-size: 1rem;
@@ -415,8 +417,8 @@ const suggestions = [
   }
 
   .chip:hover {
-    background: rgba(1, 183, 187, 0.22);
-    border-color: rgba(1, 183, 187, 0.7);
+    background: rgba(var(--accent-rgb), 0.22);
+    border-color: rgba(var(--accent-rgb), 0.7);
     color: #ffffff;
     transform: translateY(-2px);
   }

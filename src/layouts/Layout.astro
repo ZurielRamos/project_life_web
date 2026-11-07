@@ -1,5 +1,12 @@
 ---
 import logo from '../assets/logo-inkttex.svg';
+import {
+  DEFAULT_BRAND_DESCRIPTION,
+  getBrand,
+  getRequestOrigin,
+  hexToRgb,
+  ogLocale,
+} from '../lib/brand';
 
 interface Props {
   title?: string;
@@ -12,96 +19,74 @@ interface Props {
   noindex?: boolean;
 }
 
+// Marca efectiva de la petición (tienda resuelta por host).
+const brand = getBrand(Astro.locals.store);
+
 const DEFAULT_OG_IMAGE = '/og.jpg';
 
-let {
-  // Título ~55 caracteres (rango recomendado 50-60 para buscadores).
-  title = 'Inkttex — Tu idea, tu prenda | Ropa personalizada',
-  // Description ~155 caracteres (rango recomendado para Google y social).
-  description =
-    'Miles de diseños para tu ropa o crea el tuyo. Estampamos camisetas, hoodies y básicos para mujer, hombre, familia y kids. Explora el catálogo.',
-  image = DEFAULT_OG_IMAGE,
+const {
+  // Por defecto, el título SEO de la tienda.
+  title = brand.title,
+  // Por defecto, la descripción SEO o la descripción de la tienda.
+  description = brand.seoDescription ??
+    brand.description ??
+    DEFAULT_BRAND_DESCRIPTION,
+  // Sin imagen propia: logo de la tienda; solo la plataforma (sin tienda)
+  // tiene una imagen OG por defecto.
+  image = brand.logoUrl ?? (brand.isDefault ? DEFAULT_OG_IMAGE : undefined),
   ogType = 'website',
   noindex = false,
 } = Astro.props;
 
-// Tienda resuelta por host (null en el sitio principal).
-const store = Astro.locals.store;
-let siteName = 'Inkttex';
-let faviconHref = logo.src;
-let faviconType = 'image/svg+xml';
-let htmlLang = 'es';
-let themeStyle: string | undefined;
-if (store) {
-  siteName = store.name;
-  // Los títulos de las páginas mencionan la marca principal: la cambiamos.
-  title =
-    Astro.props.title === undefined
-      ? (store.seoTitle ?? store.title ?? store.name)
-      : title.replaceAll('Inkttex', store.name);
-  if (Astro.props.description === undefined) {
-    description = store.seoDescription ?? store.description ?? description;
-  }
-  // Sin imagen OG propia de la página, usamos el logo de la tienda (si hay).
-  if (Astro.props.image === undefined && store.logoUrl) {
-    image = store.logoUrl;
-  }
-  if (store.faviconUrl) {
-    faviconHref = store.faviconUrl;
-    faviconType = '';
-  }
-  htmlLang = store.locale || 'es';
-  // El color viene validado como #RRGGBB por la API.
-  if (store.primaryColor && /^#[0-9a-fA-F]{6}$/.test(store.primaryColor)) {
-    themeStyle = `--accent:${store.primaryColor};--brand-teal:${store.primaryColor}`;
-  }
-}
+// Icono de pestaña: el de la tienda, su logo o, sin tienda, el de la plataforma.
+const faviconHref =
+  brand.faviconUrl ?? brand.logoUrl ?? (brand.isDefault ? logo.src : null);
+const faviconType = brand.faviconUrl || brand.logoUrl ? undefined : 'image/svg+xml';
 
-// Solo la imagen OG por defecto del sitio tiene dimensiones/formato conocidos
-// (1200×630 JPG). Para imágenes personalizadas (p. ej. fotos de producto
-// remotas) omitimos los hints de tamaño/tipo y dejamos que el scraper los
-// deduzca al descargarla.
+// El color viene validado como #RRGGBB.
+const themeStyle = brand.primaryColor
+  ? [
+      `--accent:${brand.primaryColor}`,
+      `--brand-teal:${brand.primaryColor}`,
+      `--accent-rgb:${hexToRgb(brand.primaryColor)}`,
+      `--accent-dark:color-mix(in srgb, ${brand.primaryColor} 70%, #000)`,
+      `--accent-soft:color-mix(in srgb, ${brand.primaryColor} 65%, #fff)`,
+    ].join(';')
+  : undefined;
+
+// Solo la imagen OG por defecto de la plataforma tiene dimensiones/formato
+// conocidos (1200×630 JPG). Para el resto omitimos los hints de tamaño/tipo y
+// dejamos que el scraper los deduzca al descargarla.
 const isDefaultOgImage = image === DEFAULT_OG_IMAGE;
 
-// Origen real de la request. Detrás de Vercel el host original llega en
-// x-forwarded-host; es el que ve el usuario (subdominio o dominio propio).
-const forwardedHost = Astro.request.headers.get('x-forwarded-host');
-const forwardedProto = Astro.request.headers
-  .get('x-forwarded-proto')
-  ?.split(',')[0]
-  ?.trim();
-const forwardedHostValue = forwardedHost?.split(',')[0]?.trim() ?? '';
-// Solo aceptamos un host bien formado; si no, caemos al origen de Astro.
-const requestOrigin = /^[a-z0-9.-]+(:\d+)?$/i.test(forwardedHostValue)
-  ? new URL(
-      `${forwardedProto === 'http' ? 'http' : 'https'}://${forwardedHostValue}`,
-    )
-  : new URL(Astro.url.origin);
-
-// Base absoluta del sitio para URLs de canonical/OG.
-// - En una TIENDA siempre usamos el origen real de la request: así cada
-//   tienda es canónica de sí misma aunque PUBLIC_SITE_URL esté definida
-//   (que apunta al sitio principal).
-// - En el sitio principal preferimos `Astro.site` (PUBLIC_SITE_URL) y, si no
-//   está definido, el origen de la request.
-const siteUrl = store ? requestOrigin : (Astro.site ?? requestOrigin);
+// Base absoluta para canonical/OG: siempre el origen real de la petición, así
+// cada tienda es canónica de sí misma (subdominio o dominio propio).
+const siteUrl = getRequestOrigin(Astro.request, Astro.url);
 
 // URL canónica de la página actual (absoluta, sin query ni hash).
 const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
 
 // La imagen OG debe ser una URL absoluta. Si ya nos pasan una absoluta la
 // respetamos; si es una ruta la resolvemos contra el dominio del sitio.
-const ogImageURL = /^https?:\/\//.test(image)
-  ? image
-  : new URL(image, siteUrl).href;
+const ogImageURL = image
+  ? /^https?:\/\//.test(image)
+    ? image
+    : new URL(image, siteUrl).href
+  : null;
 ---
 
 <!doctype html>
-<html lang={htmlLang} style={themeStyle}>
+<html
+  lang={brand.locale}
+  style={themeStyle}
+  data-brand-name={brand.name}
+  data-brand-logo={brand.logoUrl ?? undefined}
+  data-brand-default={brand.isDefault ? 'true' : undefined}
+>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type={faviconType || undefined} href={faviconHref} />
+    {faviconHref && <link rel="icon" type={faviconType} href={faviconHref} />}
     <meta name="generator" content={Astro.generator} />
 
     <!-- SEO base -->
@@ -112,28 +97,39 @@ const ogImageURL = /^https?:\/\//.test(image)
 
     <!-- Open Graph (Facebook, LinkedIn, WhatsApp, Telegram, etc.) -->
     <meta property="og:type" content={ogType} />
-    <meta property="og:site_name" content={siteName} />
-    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content={brand.name} />
+    <meta property="og:locale" content={ogLocale(brand.locale)} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
-    <meta property="og:image" content={ogImageURL} />
-    <meta property="og:image:secure_url" content={ogImageURL} />
-    {isDefaultOgImage && (
+    {ogImageURL && (
       <>
-        <meta property="og:image:type" content="image/jpeg" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image" content={ogImageURL} />
+        <meta property="og:image:secure_url" content={ogImageURL} />
+        {isDefaultOgImage && (
+          <>
+            <meta property="og:image:type" content="image/jpeg" />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
+          </>
+        )}
+        <meta property="og:image:alt" content={title} />
       </>
     )}
-    <meta property="og:image:alt" content={title} />
 
     <!-- Twitter / X -->
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:card"
+      content={ogImageURL ? 'summary_large_image' : 'summary'}
+    />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={ogImageURL} />
-    <meta name="twitter:image:alt" content={title} />
+    {ogImageURL && (
+      <>
+        <meta name="twitter:image" content={ogImageURL} />
+        <meta name="twitter:image:alt" content={title} />
+      </>
+    )}
 
     <link
       rel="preload"
@@ -179,6 +175,7 @@ const ogImageURL = /^https?:\/\//.test(image)
     --accent: #01b7bb;
     --accent-dark: #017a7d;
     --accent-soft: #58e0e3;
+    --accent-rgb: 1, 183, 187;
     --brand-teal: #01b7bb;
     --brand-yellow: #fecc2b;
     --brand-purple: #9600fc;

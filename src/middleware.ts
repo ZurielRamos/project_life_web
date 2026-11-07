@@ -4,8 +4,8 @@ import { renderStoreErrorPage } from './lib/store-error-page';
 
 /**
  * Detecta la tienda según el host (subdominio o dominio propio) y la deja en
- * `Astro.locals.store`. En el sitio principal `store` es null. Un host de
- * tienda sin tienda asociada responde 404 (no el sitio principal).
+ * `Astro.locals.store`. Todo el sitio es de tiendas: un host sin tienda
+ * asociada responde 404. Solo en desarrollo/previews `store` puede ser null.
  */
 export const onRequest = defineMiddleware(async (context, next) => {
   // Detrás de Vercel el host original llega en x-forwarded-host.
@@ -17,7 +17,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     case 'store':
       context.locals.store = resolution.store;
       return next();
-    case 'main':
+    case 'default':
       context.locals.store = null;
       return next();
     case 'not-found':

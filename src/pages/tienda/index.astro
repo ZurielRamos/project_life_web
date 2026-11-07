@@ -9,6 +9,8 @@ import {
   FIT_META,
 } from '../../lib/storefront';
 import type { ProductFit } from '../../lib/types';
+import { getBrand } from '../../lib/brand';
+const brand = getBrand(Astro.locals.store);
 
 const VALID_FITS: ProductFit[] = ['women', 'family', 'men', 'unisex', 'kids'];
 
@@ -37,7 +39,7 @@ const fitHref = (f?: ProductFit) => {
 ---
 
 <Layout
-  title={q ? `Buscar: ${q} — Tienda Inkttex` : `${heading} — Tienda Inkttex`}
+  title={q ? `Buscar: ${q} — ${brand.name}` : `${heading} — ${brand.name}`}
   noindex={Boolean(q)}
 >
   <Header solid />
@@ -186,7 +188,7 @@ const fitHref = (f?: ProductFit) => {
     border: 0;
     border-radius: 999px;
     padding: 0.6rem 1.2rem;
-    background: linear-gradient(100deg, #01b7bb, #017a7d);
+    background: linear-gradient(100deg, var(--accent), var(--accent-dark));
     color: #ffffff;
     font-weight: 700;
     font-size: 0.85rem;
@@ -282,9 +284,9 @@ const fitHref = (f?: ProductFit) => {
 
   .empty-cta {
     padding: 0.7rem 1.5rem;
-    border: 1px solid #01b7bb;
+    border: 1px solid var(--accent);
     border-radius: 999px;
-    color: #017a7d;
+    color: var(--accent-dark);
     font-weight: 600;
     font-size: 0.85rem;
   }

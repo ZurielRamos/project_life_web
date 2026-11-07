@@ -4,9 +4,8 @@
 // (.st0) en blanco, conservando los colores de marca.
 import logoSvg from '../assets/logo-inkttex.svg?raw';
 
-const store = Astro.locals.store;
-const brandName = store?.name ?? 'Inkttex';
-
+import { getBrand } from '../lib/brand';
+const brand = getBrand(Astro.locals.store);
 const baseColumns = [
   {
     title: 'Comprar',
@@ -18,79 +17,47 @@ const baseColumns = [
   },
   {
     title: 'Empresa',
-    links: ['Sobre Inkttex', 'Sostenibilidad', 'Tiendas', 'Trabaja con nosotros'],
+    links: ['Sobre nosotros', 'Sostenibilidad', 'Trabaja con nosotros'],
   },
 ];
-// En una tienda se adapta la marca y se omiten enlaces que no aplican.
-const columns = store
-  ? baseColumns.map((col) => ({
-      ...col,
-      links: col.links
-        .filter((l) => l !== 'Tiendas')
-        .map((l) => l.replaceAll('Inkttex', brandName)),
-    }))
-  : baseColumns;
-
+const columns = baseColumns;
 const year = new Date().getFullYear();
 
-// Redes sociales: cada icono solo aparece si su variable de entorno está
-// definida. Sin fallbacks — si no hay env, no se muestra el icono.
-const instagramUrl = import.meta.env.PUBLIC_INSTAGRAM_URL;
-const facebookUrl = import.meta.env.PUBLIC_FACEBOOK_URL;
-const tiktokUrl = import.meta.env.PUBLIC_TIKTOK_URL;
-const contactEmail = import.meta.env.PUBLIC_CONTACT_EMAIL;
-
-// WhatsApp: a partir del número (solo dígitos) construimos el enlace al chat.
-const whatsappDigits = (import.meta.env.PUBLIC_WHATSAPP_PHONE ?? '').replace(
-  /\D/g,
-  '',
-);
-
-// En una tienda, los datos salen de su configuración (no de las variables).
-const storeWhatsappDigits = (store?.socialLinks.whatsapp ?? '').replace(/\D/g, '');
-const socials = (store ? [
-  store.socialLinks.instagram && { name: 'Instagram', href: store.socialLinks.instagram, icon: 'instagram' },
-  store.socialLinks.facebook && { name: 'Facebook', href: store.socialLinks.facebook, icon: 'facebook' },
-  store.socialLinks.tiktok && { name: 'TikTok', href: store.socialLinks.tiktok, icon: 'tiktok' },
-  storeWhatsappDigits && { name: 'WhatsApp', href: `https://wa.me/${storeWhatsappDigits}`, icon: 'whatsapp' },
-  store.contactEmail && { name: 'Correo', href: `mailto:${store.contactEmail}`, icon: 'email' },
-] : [
-  instagramUrl && { name: 'Instagram', href: instagramUrl, icon: 'instagram' },
-  facebookUrl && { name: 'Facebook', href: facebookUrl, icon: 'facebook' },
-  tiktokUrl && { name: 'TikTok', href: tiktokUrl, icon: 'tiktok' },
-  whatsappDigits && {
+// Redes y contacto: salen de la configuración de la tienda (cada icono solo
+// aparece si el dato existe).
+const socials = [
+  brand.instagram && { name: 'Instagram', href: brand.instagram, icon: 'instagram' },
+  brand.facebook && { name: 'Facebook', href: brand.facebook, icon: 'facebook' },
+  brand.tiktok && { name: 'TikTok', href: brand.tiktok, icon: 'tiktok' },
+  brand.whatsappDigits && {
     name: 'WhatsApp',
-    href: `https://wa.me/${whatsappDigits}`,
+    href: `https://wa.me/${brand.whatsappDigits}`,
     icon: 'whatsapp',
   },
-  contactEmail && {
+  brand.contactEmail && {
     name: 'Correo',
-    href: `mailto:${contactEmail}`,
+    href: `mailto:${brand.contactEmail}`,
     icon: 'email',
   },
-]).filter(Boolean) as { name: string; href: string; icon: string }[];
+].filter(Boolean) as { name: string; href: string; icon: string }[];
 ---
 
 <footer class="footer">
   <div class="footer-top">
     <div class="footer-brand">
-      {store ? (
-        store.logoUrl ? (
-          <img class="footer-logo store-footer-logo" src={store.logoUrl} alt={store.name} />
-        ) : (
-          <span class="footer-logo store-footer-name">{store.name}</span>
-        )
+      {brand.logoUrl ? (
+        <img class="footer-logo store-footer-logo" src={brand.logoUrl} alt={brand.name} />
+      ) : brand.isDefault ? (
+        <span class="footer-logo" role="img" aria-label={brand.name} set:html={logoSvg}></span>
       ) : (
-        <span class="footer-logo" role="img" aria-label="Inkttex" set:html={logoSvg}></span>
+        <span class="footer-logo store-footer-name">{brand.name}</span>
       )}
-      <p class="footer-tag">
-        {store
-          ? (store.tagline ?? store.description ?? '')
-          : 'Tu idea, tu prenda. Miles de diseños para tu ropa, o crea el tuyo: lo estampamos en la prenda que elijas.'}
-      </p>
-      {store && (store.phone || store.address) && (
+      {(brand.tagline ?? brand.description) && (
+        <p class="footer-tag">{brand.tagline ?? brand.description}</p>
+      )}
+      {(brand.phone || brand.address) && (
         <p class="footer-tag">
-          {store.phone}{store.phone && store.address ? ' · ' : ''}{store.address}
+          {brand.phone}{brand.phone && brand.address ? ' · ' : ''}{brand.address}
         </p>
       )}
 
@@ -153,7 +120,7 @@ const socials = (store ? [
   </div>
 
   <div class="footer-bottom">
-    <p>© {year} {brandName}. Todos los derechos reservados.</p>
+    <p>© {year} {brand.name}. Todos los derechos reservados.</p>
     <ul class="legal">
       <li><a href="#">Privacidad</a></li>
       <li><a href="#">Términos</a></li>
@@ -232,9 +199,9 @@ const socials = (store ? [
   }
 
   .footer-social-link:hover {
-    background: rgba(1, 183, 187, 0.16);
-    border-color: rgba(1, 183, 187, 0.7);
-    color: #58e0e3;
+    background: rgba(var(--accent-rgb), 0.16);
+    border-color: rgba(var(--accent-rgb), 0.7);
+    color: var(--accent-soft);
     transform: translateY(-2px);
   }
 

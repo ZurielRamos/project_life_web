@@ -3,6 +3,8 @@ import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import { getStorefrontDesign, formatPrice, FIT_META } from '../../lib/storefront';
+import { getBrand, getRequestOrigin } from '../../lib/brand';
+const brand = getBrand(Astro.locals.store);
 
 const slug = Astro.params.slug as string;
 const product = await getStorefrontDesign(slug, Astro.locals.store?.slug);
@@ -19,6 +21,7 @@ const initialSize = product.sizes[0] ?? null;
 const price = formatPrice(
   initialSize ? sizePriceCents(initialSize) : product.priceCents,
   product.currency,
+  brand.locale,
 );
 const subtitle = product.fit ? `${FIT_META[product.fit].label}` : null;
 
@@ -31,14 +34,14 @@ const hasSizeGuide =
     (s) => s.measurements && Object.keys(s.measurements).length > 0,
   );
 
-// WhatsApp: número destino (solo dígitos) y URL absoluta del producto.
-// El fallback asegura que, aunque falte la env, siempre haya número y el
-// enlace abra el CHAT directo (wa.me/<numero>) y no el diálogo de compartir.
-const whatsappPhone = (
-  import.meta.env.PUBLIC_WHATSAPP_PHONE ?? '573207104999'
-).replace(/\D/g, '');
-const productUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
-
+// WhatsApp: número de la tienda (solo dígitos). Si la tienda no tiene, queda
+// vacío y el cliente usa el diálogo de compartir en vez del chat directo.
+const whatsappPhone = brand.whatsappDigits;
+// URL absoluta del producto con el host real de la tienda (subdominio o dominio).
+const productUrl = new URL(
+  Astro.url.pathname,
+  getRequestOrigin(Astro.request, Astro.url),
+).href;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const createdAt = product.createdAt ? new Date(product.createdAt).getTime() : NaN;
 const isNew = Number.isFinite(createdAt) && Date.now() - createdAt < WEEK_MS;
@@ -50,7 +53,7 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
 ---
 
 <Layout
-  title={`${product.name} — Inkttex`}
+  title={`${product.name} — ${brand.name}`}
   description={product.description ?? undefined}
   image={product.cover ?? initial?.images[0] ?? undefined}
   ogType="product"
@@ -159,7 +162,7 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
                 class:list={['size', { active: i === 0 }]}
                 data-size={s.name}
                 data-price={
-                  formatPrice(sizePriceCents(s), product.currency) ??
+                  formatPrice(sizePriceCents(s), product.currency, brand.locale) ??
                   'Consultar'
                 }
               >
@@ -1068,8 +1071,8 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
     flex: none;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    border: 1px solid #01b7bb;
-    color: #017a7d;
+    border: 1px solid var(--accent);
+    color: var(--accent-dark);
     background: rgba(255, 255, 255, 0.6);
     font-size: 0.58rem;
     font-weight: 700;

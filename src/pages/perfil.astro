@@ -3,9 +3,11 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/account.css';
+import { getBrand } from '../lib/brand';
+const brand = getBrand(Astro.locals.store);
 ---
 
-<Layout title="Mi perfil — Inkttex" noindex>
+<Layout title={`Mi perfil — ${brand.name}`} noindex>
   <Header solid />
 
   <main class="account-page">

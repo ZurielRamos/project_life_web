@@ -4,11 +4,11 @@
    con JS (chips de intereses). Paleta de marca Inkttex. */
 
 .account-page {
-  --acc-accent: #01b7bb;
-  --acc-accent-dark: #017a7d;
-  --acc-soft: rgba(1, 183, 187, 0.12);
+  --acc-accent: var(--accent);
+  --acc-accent-dark: var(--accent-dark);
+  --acc-soft: rgba(var(--accent-rgb), 0.12);
   --acc-purple: #9600fc;
-  --acc-gradient: linear-gradient(100deg, #01b7bb 0%, #01b7bb 40%, #9600fc 100%);
+  --acc-gradient: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, #9600fc 100%);
 
   background: #f4f2ee;
   color: #12120f;
@@ -167,13 +167,13 @@
 }
 .account-page .field input:hover:not(:disabled),
 .account-page .field select:hover {
-  border-color: rgba(1, 183, 187, 0.6);
+  border-color: rgba(var(--accent-rgb), 0.6);
 }
 .account-page .field input:focus,
 .account-page .field select:focus {
   outline: none;
   border-color: var(--acc-accent);
-  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 .account-page .field input:disabled {
   background: #f4f2ee;
@@ -251,7 +251,7 @@
   transform: translateY(-1px);
 }
 .account-page .btn-primary:focus-visible {
-  outline: 3px solid rgba(1, 183, 187, 0.4);
+  outline: 3px solid rgba(var(--accent-rgb), 0.4);
   outline-offset: 2px;
 }
 .account-page .btn-primary:disabled {
@@ -333,7 +333,7 @@
   transform: translateX(20px);
 }
 .account-page .switch input:focus-visible + .switch-track {
-  outline: 3px solid rgba(1, 183, 187, 0.4);
+  outline: 3px solid rgba(var(--accent-rgb), 0.4);
   outline-offset: 2px;
 }
 .account-page .switch input:disabled + .switch-track {

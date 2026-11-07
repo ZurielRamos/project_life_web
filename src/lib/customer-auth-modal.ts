@@ -88,20 +88,47 @@ const interestChips = INTEREST_OPTIONS.map(
     `<label class="ca-chip"><input type="checkbox" value="${o.value}" /><span>${o.label}</span></label>`,
 ).join('');
 
+/** Escapa texto para insertarlo en HTML (el nombre lo define la tienda). */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Marca de la tienda actual, publicada por el layout en <html data-brand-*>. */
+function readBrand(): { name: string; logoHtml: string } {
+  const d = document.documentElement.dataset;
+  const name = d.brandName || 'Inkttex';
+  const logo = d.brandLogo;
+  let logoHtml: string;
+  if (logo) {
+    logoHtml = `<img src="${escapeHtml(logo)}" alt="${escapeHtml(name)}" />`;
+  } else if (d.brandDefault === 'true') {
+    logoHtml = logoSvg;
+  } else {
+    logoHtml = `<span class="ca-brand-name">${escapeHtml(name)}</span>`;
+  }
+  return { name, logoHtml };
+}
+
 export function openCustomerAuthModal(opts: OpenAuthOptions): void {
   const { signupOrigin, onSuccess } = opts;
+  const brand = readBrand();
 
   const overlay = document.createElement('div');
   overlay.className = 'ca-overlay';
   overlay.innerHTML = `
     <div class="ca-backdrop" data-close></div>
-    <div class="ca-modal" role="dialog" aria-modal="true" aria-label="Entrar o crear cuenta en Inkttex">
+    <div class="ca-modal" role="dialog" aria-modal="true" aria-label="Entrar o crear cuenta en ${escapeHtml(brand.name)}">
       <button type="button" class="ca-close" data-close aria-label="Cerrar">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
 
       <div class="ca-head">
-        <span class="ca-logo" role="img" aria-label="Inkttex">${logoSvg}</span>
+        <span class="ca-logo" role="img" aria-label="${escapeHtml(brand.name)}">${brand.logoHtml}</span>
         <h2 class="ca-title" data-title></h2>
         <p class="ca-sub" data-sub></p>
       </div>
@@ -247,7 +274,7 @@ export function openCustomerAuthModal(opts: OpenAuthOptions): void {
 
   const STEP_TEXT: Record<number, { title: string; sub: string }> = {
     1: {
-      title: '¡Bienvenido a Inkttex!',
+      title: `¡Bienvenido a ${brand.name}!`,
       sub: 'Tu número quedó verificado. Cuéntanos cómo te llamas para crear tu cuenta.',
     },
     2: {

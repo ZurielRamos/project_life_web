@@ -3,7 +3,8 @@
 // conserva sus colores de marca y transparencia, y escala nítido (no se
 // rasteriza como haría el componente <Image>, que aplana el fondo).
 import logoSvg from '../assets/logo-inkttex.svg?raw';
-const store = Astro.locals.store;
+import { getBrand } from '../lib/brand';
+const brand = getBrand(Astro.locals.store);
 
 interface Props {
   /** Cabecera con fondo sólido claro (para páginas de contenido). */
@@ -31,15 +32,13 @@ const nav = [
       ))}
     </ul>
 
-    <a class="brand" href="/" aria-label={`${store?.name ?? 'Inkttex'} inicio`}>
-      {store ? (
-        store.logoUrl ? (
-          <img class="brand-logo store-brand-logo" src={store.logoUrl} alt={store.name} />
-        ) : (
-          <span class="brand-logo store-brand-name">{store.name}</span>
-        )
+    <a class="brand" href="/" aria-label={`${brand.name} inicio`}>
+      {brand.logoUrl ? (
+        <img class="brand-logo store-brand-logo" src={brand.logoUrl} alt={brand.name} />
+      ) : brand.isDefault ? (
+        <span class="brand-logo" role="img" aria-label={brand.name} set:html={logoSvg}></span>
       ) : (
-        <span class="brand-logo" role="img" aria-label="Inkttex" set:html={logoSvg}></span>
+        <span class="brand-logo store-brand-name">{brand.name}</span>
       )}
     </a>
 
@@ -392,7 +391,7 @@ const nav = [
     font-weight: 600;
   }
   .user-dropdown-login svg {
-    color: #017a7d;
+    color: var(--accent-dark);
   }
 
   .user-dropdown-nav {
@@ -418,12 +417,12 @@ const nav = [
     transition: background 0.14s ease, color 0.14s ease;
   }
   .user-dropdown-item:hover {
-    background: rgba(1, 183, 187, 0.1);
-    color: #017a7d;
+    background: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent-dark);
   }
   .user-dropdown-item svg {
     flex: none;
-    color: #017a7d;
+    color: var(--accent-dark);
   }
   /* Logout: separador arriba y color de peligro. */
   .user-dropdown-logout {

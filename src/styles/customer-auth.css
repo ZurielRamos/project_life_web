@@ -1,12 +1,12 @@
 /* ===== Modal de registro / login de clientes (ca-*) ===== */
 .ca-overlay {
   /* Paleta de marca Inkttex (la misma del sitio). */
-  --ca-accent: #01b7bb;
-  --ca-accent-dark: #017a7d;
-  --ca-accent-soft: rgba(1, 183, 187, 0.12);
+  --ca-accent: var(--accent);
+  --ca-accent-dark: var(--accent-dark);
+  --ca-accent-soft: rgba(var(--accent-rgb), 0.12);
   --ca-purple: #9600fc;
   --ca-yellow: #fecc2b;
-  --ca-gradient: linear-gradient(100deg, #01b7bb 0%, #01b7bb 40%, #9600fc 100%);
+  --ca-gradient: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, #9600fc 100%);
   position: fixed;
   inset: 0;
   z-index: 1100;
@@ -80,10 +80,20 @@
   height: 38px;
   margin-bottom: 0.9rem;
 }
-.ca-logo svg {
+.ca-logo svg,
+.ca-logo img {
   height: 100%;
   width: auto;
+  max-width: 100%;
   display: block;
+  object-fit: contain;
+}
+.ca-brand-name {
+  align-self: center;
+  font-family: var(--font-display, inherit);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
 }
 .ca-title {
   margin: 0;
@@ -126,7 +136,7 @@
 .ca-tab.active {
   background: var(--ca-accent);
   color: #fff;
-  box-shadow: 0 4px 12px -4px rgba(1, 183, 187, 0.6);
+  box-shadow: 0 4px 12px -4px rgba(var(--accent-rgb), 0.6);
 }
 .ca-error {
   margin: 0 0 0.9rem;
@@ -190,7 +200,7 @@
 .ca-field select:focus {
   outline: none;
   border-color: var(--ca-accent);
-  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 .ca-interests {
   display: flex;
@@ -267,7 +277,7 @@
   transform: translateY(-1px);
 }
 .ca-submit:focus-visible {
-  outline: 3px solid rgba(1, 183, 187, 0.4);
+  outline: 3px solid rgba(var(--accent-rgb), 0.4);
   outline-offset: 2px;
 }
 .ca-submit:disabled {
@@ -406,7 +416,7 @@
 .ca-otp-cell:focus {
   outline: none;
   border-color: var(--ca-accent);
-  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 .ca-otp-cell:disabled {
   opacity: 0.6;
@@ -484,7 +494,7 @@
 .ca-phone-btn:focus-visible {
   outline: none;
   border-color: var(--ca-accent);
-  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 .ca-phone-btn[aria-expanded='true'] svg {
   transform: rotate(180deg);
@@ -536,7 +546,7 @@
 .ca-phone-search:focus {
   outline: none;
   border-color: var(--ca-accent);
-  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 .ca-phone-list {
   list-style: none;
@@ -805,7 +815,7 @@
 }
 .ca-check:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(1, 183, 187, 0.3);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.3);
 }
 @media (prefers-reduced-motion: reduce) {
   .ca-check,

@@ -30,12 +30,12 @@ export interface StoreConfig {
 
 /** Resultado de resolver el host de una petición. */
 export type HostResolution =
-  /** Sitio principal (no es una tienda). */
-  | { kind: 'main' }
+  /** localhost sin tienda por defecto: valores de la plataforma (brand.ts). */
+  | { kind: 'default' }
   | { kind: 'store'; store: StoreConfig }
-  /** Host de tienda (subdominio o dominio propio) sin tienda asociada. */
+  /** Host sin tienda asociada. */
   | { kind: 'not-found' }
-  /** No se pudo consultar la API; no se debe servir el sitio principal. */
+  /** No se pudo consultar la API. */
   | { kind: 'error' };
 
 interface CacheEntry {
@@ -48,70 +48,76 @@ const CACHE_TTL_MS = 60_000;
 const cache = new Map<string, CacheEntry>();
 
 function envValue(name: string): string {
-  return (process.env[name] ?? (import.meta.env as Record<string, string>)[name] ?? '')
-    .trim()
-    .toLowerCase();
+  return (
+    process.env[name] ??
+    (import.meta.env as Record<string, string | undefined>)[name] ??
+    ''
+  ).trim();
 }
 
-/**
- * Hosts del sitio principal (no son tiendas): se omite la consulta a la API.
- * Son: localhost, los despliegues *.vercel.app, el dominio base, www y tienda
- * bajo el dominio base (donde vive el sitio actual) y los que se indiquen en
- * MAIN_SITE_HOSTS (lista separada por comas).
- */
-function isMainSiteHost(host: string, base: string): boolean {
-  if (host === 'localhost' || host === '127.0.0.1') return true;
-  if (host.endsWith('.vercel.app')) return true;
-  if (host === base || host === `www.${base}` || host === `tienda.${base}`) {
-    return true;
-  }
-  return envValue('MAIN_SITE_HOSTS')
-    .split(',')
-    .map((h) => h.trim())
-    .filter(Boolean)
-    .includes(host);
+/** Desarrollo local: sin dominio de tienda. */
+function isLocalHost(host: string): boolean {
+  return host === 'localhost' || host === '127.0.0.1';
 }
 
-/**
- * Resuelve el host de la petición:
- * - Sin STORES_BASE_DOMAIN configurado, la función de tiendas está apagada y
- *   todo se sirve como sitio principal (así nunca se rompe el sitio actual).
- * - Un host de tienda sin tienda asociada devuelve `not-found`: NO se cae al
- *   sitio principal, para que un subdominio inventado no muestre la tienda
- *   de Inkttex.
- */
-export async function resolveStoreByHost(
-  rawHost: string,
+/** URLs técnicas de Vercel (previews / alias del proyecto). */
+function isVercelHost(host: string): boolean {
+  return host.endsWith('.vercel.app');
+}
+
+async function fetchStore(
+  cacheKey: string,
+  query: string,
 ): Promise<HostResolution> {
-  const base = envValue('STORES_BASE_DOMAIN');
-  if (!base) return { kind: 'main' };
-
-  const host = rawHost.trim().toLowerCase().replace(/:\d+$/, '');
-  if (!host || isMainSiteHost(host, base)) return { kind: 'main' };
-
-  const cached = cache.get(host);
+  const cached = cache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.resolution;
 
   try {
-    const res = await fetch(
-      `${API_URL}/storefront/store?host=${encodeURIComponent(host)}`,
-      { headers: { Accept: 'application/json' } },
-    );
+    const res = await fetch(`${API_URL}/storefront/store?${query}`, {
+      headers: { Accept: 'application/json' },
+    });
     if (res.status === 404) {
       const resolution = { kind: 'not-found' } as const;
-      cache.set(host, { resolution, expiresAt: Date.now() + CACHE_TTL_MS });
+      cache.set(cacheKey, { resolution, expiresAt: Date.now() + CACHE_TTL_MS });
       return resolution;
     }
     if (!res.ok) {
-      console.error(`[store] ${res.status} al resolver host ${host}`);
+      console.error(`[store] ${res.status} al resolver ${query}`);
       return { kind: 'error' };
     }
     const store = (await res.json()) as StoreConfig;
     const resolution = { kind: 'store', store } as const;
-    cache.set(host, { resolution, expiresAt: Date.now() + CACHE_TTL_MS });
+    cache.set(cacheKey, { resolution, expiresAt: Date.now() + CACHE_TTL_MS });
     return resolution;
   } catch (err) {
-    console.error('[store] error de red al resolver host:', err);
+    console.error('[store] error de red al resolver tienda:', err);
     return { kind: 'error' };
   }
+}
+
+/**
+ * Resuelve la tienda de la petición. Todo el sitio es de tiendas: la API
+ * decide por host (subdominio del dominio base o dominio propio).
+ *
+ * En localhost y *.vercel.app no hay dominio de tienda: se fija una con
+ * DEFAULT_STORE_SLUG. Sin ella, localhost usa los valores por defecto de la
+ * plataforma y *.vercel.app responde "no existe".
+ */
+export async function resolveStoreByHost(
+  rawHost: string,
+): Promise<HostResolution> {
+  const host = rawHost.trim().toLowerCase().replace(/:\d+$/, '');
+  if (!host) return { kind: 'not-found' };
+
+  if (isLocalHost(host) || isVercelHost(host)) {
+    const slug = envValue('DEFAULT_STORE_SLUG').toLowerCase();
+    if (slug) {
+      return fetchStore(`slug:${slug}`, `slug=${encodeURIComponent(slug)}`);
+    }
+    // Local: valores por defecto de la plataforma. Vercel: no se sirve un
+    // catálogo sin tienda; hay que fijar DEFAULT_STORE_SLUG para previews.
+    return isLocalHost(host) ? { kind: 'default' } : { kind: 'not-found' };
+  }
+
+  return fetchStore(`host:${host}`, `host=${encodeURIComponent(host)}`);
 }

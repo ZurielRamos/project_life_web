@@ -1,5 +1,6 @@
 ---
 import { formatPrice } from '../lib/storefront';
+import { getBrand } from '../lib/brand';
 import type { StorefrontProduct } from '../lib/types';
 
 interface Props {
@@ -7,7 +8,11 @@ interface Props {
 }
 
 const { product } = Astro.props;
-const price = formatPrice(product.priceCents, product.currency);
+const price = formatPrice(
+  product.priceCents,
+  product.currency,
+  getBrand(Astro.locals.store).locale,
+);
 const href = product.slug ? `/producto/${product.slug}` : '#';
 
 // Imágenes del color principal: portada = 1ª, hover = 2ª del mismo color.
@@ -188,7 +193,7 @@ const isNew = Number.isFinite(createdAt) && Date.now() - createdAt < WEEK_MS;
     z-index: 3;
     padding: 0.28rem 0.6rem;
     border-radius: 999px;
-    background: #01b7bb;
+    background: var(--accent);
     color: #fff;
     font-size: 0.62rem;
     font-weight: 700;

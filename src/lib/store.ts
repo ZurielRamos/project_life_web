@@ -28,8 +28,18 @@ export interface StoreConfig {
   publicUrl: string | null;
 }
 
+/** Resultado de resolver el host de una petición. */
+export type HostResolution =
+  /** Sitio principal (no es una tienda). */
+  | { kind: 'main' }
+  | { kind: 'store'; store: StoreConfig }
+  /** Host de tienda (subdominio o dominio propio) sin tienda asociada. */
+  | { kind: 'not-found' }
+  /** No se pudo consultar la API; no se debe servir el sitio principal. */
+  | { kind: 'error' };
+
 interface CacheEntry {
-  store: StoreConfig | null;
+  resolution: Extract<HostResolution, { kind: 'store' | 'not-found' }>;
   expiresAt: number;
 }
 
@@ -37,36 +47,50 @@ interface CacheEntry {
 const CACHE_TTL_MS = 60_000;
 const cache = new Map<string, CacheEntry>();
 
-/**
- * Hosts del sitio principal (no son tiendas): se omite la consulta a la API.
- * STORES_BASE_DOMAIN es el dominio base (ej. "inkttex.com").
- */
-function isMainSiteHost(host: string): boolean {
-  const base = (
-    process.env.STORES_BASE_DOMAIN ??
-    import.meta.env.STORES_BASE_DOMAIN ??
-    ''
-  )
+function envValue(name: string): string {
+  return (process.env[name] ?? (import.meta.env as Record<string, string>)[name] ?? '')
     .trim()
     .toLowerCase();
-  if (host === 'localhost' || host === '127.0.0.1') return true;
-  if (host.endsWith('.vercel.app')) return true;
-  if (base && (host === base || host === `www.${base}`)) return true;
-  return false;
 }
 
 /**
- * Devuelve la tienda asociada al host o null si es el sitio principal, si no
- * existe o si la API falla (en ese caso se sirve el sitio principal).
+ * Hosts del sitio principal (no son tiendas): se omite la consulta a la API.
+ * Son: localhost, los despliegues *.vercel.app, el dominio base, www y tienda
+ * bajo el dominio base (donde vive el sitio actual) y los que se indiquen en
+ * MAIN_SITE_HOSTS (lista separada por comas).
+ */
+function isMainSiteHost(host: string, base: string): boolean {
+  if (host === 'localhost' || host === '127.0.0.1') return true;
+  if (host.endsWith('.vercel.app')) return true;
+  if (host === base || host === `www.${base}` || host === `tienda.${base}`) {
+    return true;
+  }
+  return envValue('MAIN_SITE_HOSTS')
+    .split(',')
+    .map((h) => h.trim())
+    .filter(Boolean)
+    .includes(host);
+}
+
+/**
+ * Resuelve el host de la petición:
+ * - Sin STORES_BASE_DOMAIN configurado, la función de tiendas está apagada y
+ *   todo se sirve como sitio principal (así nunca se rompe el sitio actual).
+ * - Un host de tienda sin tienda asociada devuelve `not-found`: NO se cae al
+ *   sitio principal, para que un subdominio inventado no muestre la tienda
+ *   de Inkttex.
  */
 export async function resolveStoreByHost(
   rawHost: string,
-): Promise<StoreConfig | null> {
+): Promise<HostResolution> {
+  const base = envValue('STORES_BASE_DOMAIN');
+  if (!base) return { kind: 'main' };
+
   const host = rawHost.trim().toLowerCase().replace(/:\d+$/, '');
-  if (!host || isMainSiteHost(host)) return null;
+  if (!host || isMainSiteHost(host, base)) return { kind: 'main' };
 
   const cached = cache.get(host);
-  if (cached && cached.expiresAt > Date.now()) return cached.store;
+  if (cached && cached.expiresAt > Date.now()) return cached.resolution;
 
   try {
     const res = await fetch(
@@ -74,18 +98,20 @@ export async function resolveStoreByHost(
       { headers: { Accept: 'application/json' } },
     );
     if (res.status === 404) {
-      cache.set(host, { store: null, expiresAt: Date.now() + CACHE_TTL_MS });
-      return null;
+      const resolution = { kind: 'not-found' } as const;
+      cache.set(host, { resolution, expiresAt: Date.now() + CACHE_TTL_MS });
+      return resolution;
     }
     if (!res.ok) {
       console.error(`[store] ${res.status} al resolver host ${host}`);
-      return null;
+      return { kind: 'error' };
     }
     const store = (await res.json()) as StoreConfig;
-    cache.set(host, { store, expiresAt: Date.now() + CACHE_TTL_MS });
-    return store;
+    const resolution = { kind: 'store', store } as const;
+    cache.set(host, { resolution, expiresAt: Date.now() + CACHE_TTL_MS });
+    return resolution;
   } catch (err) {
     console.error('[store] error de red al resolver host:', err);
-    return null;
+    return { kind: 'error' };
   }
 }

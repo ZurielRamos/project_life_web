@@ -5,9 +5,21 @@ import type { StorefrontProduct } from '../lib/types';
 
 interface Props {
   product: StorefrontProduct;
+  /**
+   * Tarjeta compacta para sliders horizontales: en móvil muestra solo la
+   * imagen principal (sin carrusel interno, para que deslizar mueva el slider)
+   * y textos más pequeños.
+   */
+  compact?: boolean;
+  /**
+   * Qué imagen se muestra (posición 0, 1, 2… del color principal), o
+   * 'random' para elegir una al azar sin la posición `randomExclude`.
+   */
+  imagePick?: number | 'random';
+  /** Posición (0-based) excluida del azar; -1 = ninguna. */
+  randomExclude?: number;
 }
-
-const { product } = Astro.props;
+const { product, compact = false, imagePick = 0, randomExclude = -1 } = Astro.props;
 const price = formatPrice(
   product.priceCents,
   product.currency,
@@ -18,8 +30,17 @@ const href = product.slug ? `/producto/${product.slug}` : '#';
 // Imágenes del color principal: portada = 1ª, hover = 2ª del mismo color.
 const mainColor = product.colors[0];
 const images = mainColor?.images ?? (product.cover ? [product.cover] : []);
-const primary = images[0] ?? product.cover ?? null;
-const secondary = images[1] ?? null;
+// Imagen principal elegida; si no existe esa posición, se usa la primera.
+let pick = 0;
+if (imagePick === 'random') {
+  const candidates = images.map((_, i) => i).filter((i) => i !== randomExclude);
+  if (candidates.length) pick = candidates[Math.floor(Math.random() * candidates.length)];
+} else if (images[imagePick]) {
+  pick = imagePick;
+}
+const primary = images[pick] ?? product.cover ?? null;
+// Al pasar el mouse se muestra otra imagen distinta de la elegida.
+const secondary = images.find((_, i) => i !== pick) ?? null;
 // En mobile el media es un carrusel con swipe de todas las imágenes.
 const hasMultiple = images.length > 1;
 
@@ -29,7 +50,7 @@ const createdAt = product.createdAt ? new Date(product.createdAt).getTime() : Na
 const isNew = Number.isFinite(createdAt) && Date.now() - createdAt < WEEK_MS;
 ---
 
-<a class="card" href={href}>
+<a class:list={['card', { 'card--compact': compact }]} href={href}>
   <div class:list={['card-media', { 'has-second': secondary }]}>
     {isNew && <span class="card-badge">NUEVO</span>}
     {primary ? (
@@ -311,6 +332,26 @@ const isNew = Number.isFinite(createdAt) && Date.now() - createdAt < WEEK_MS;
     .card-dot.active {
       background: #fff;
       transform: scale(1.25);
+    }
+  }
+
+  @media (max-width: 760px) {
+    /* Compacta: imagen fija (sin carrusel) y textos más pequeños. */
+    .card--compact .img-primary {
+      display: block;
+    }
+    .card--compact .card-carousel,
+    .card--compact .card-dots {
+      display: none;
+    }
+    .card--compact .card-title {
+      font-size: 0.8rem;
+    }
+    .card--compact .card-price {
+      font-size: 0.8rem;
+    }
+    .card--compact .card-badge {
+      font-size: 0.55rem;
     }
   }
 

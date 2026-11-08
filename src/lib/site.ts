@@ -135,12 +135,34 @@ export interface CategoriesSection extends HomeSectionBase {
   tiles: CategoryTileConfig[];
 }
 
+export type FeaturedSort =
+  | 'newest'
+  | 'oldest'
+  | 'price-asc'
+  | 'price-desc'
+  | 'random';
+
 export interface FeaturedSection extends HomeSectionBase {
   type: 'featured';
   title: string;
   subtitle: string;
+  /** auto = consulta con filtros; manual = diseños elegidos, en orden. */
+  mode: 'auto' | 'manual';
+  /** Clave del ajuste administrable; vacío = todos. */
+  fit: string;
+  category: string;
+  query: string;
+  productId: string;
+  sort: FeaturedSort;
+  designIds: string[];
+  /** Máximo de productos. */
   limit: number;
-  fit: SiteFit | '';
+  /** Columnas en escritorio. */
+  columns: 3 | 4 | 5;
+  /** Imagen de la tarjeta: posición 1, 2, 3 o aleatoria. */
+  image?: '1' | '2' | '3' | 'random';
+  /** En aleatoria, posición excluida (0 = ninguna). */
+  randomExclude?: 0 | 1 | 2 | 3;
   ctaLabel: string;
   ctaUrl: string;
 }

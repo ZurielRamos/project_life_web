@@ -8,29 +8,58 @@ interface Props {
 }
 
 const { section } = Astro.props;
-// Últimos diseños de la tienda (solo los que ella publica).
-const result = await listStorefrontDesigns({
-  fit: section.fit || undefined,
-  limit: section.limit,
-  store: Astro.locals.store?.slug,
-});
+const store = Astro.locals.store?.slug;
+// Secciones guardadas antes de existir estas opciones: valores por defecto.
+const mode = section.mode ?? 'auto';
+const columns = section.columns ?? 4;
+const limit = Math.min(Math.max(section.limit ?? 8, 2), 24);
+const manualIds = (section.designIds ?? []).slice(0, limit);
+
+// Modo manual: los diseños elegidos, en su orden. Automático: la consulta.
+const result =
+  mode === 'manual'
+    ? manualIds.length
+      ? await listStorefrontDesigns({ ids: manualIds, limit, store })
+      : { items: [], total: 0, limit, offset: 0 }
+    : await listStorefrontDesigns({
+        fit: section.fit || undefined,
+        category: section.category || undefined,
+        q: section.query || undefined,
+        product: section.productId || undefined,
+        sort: section.sort ?? 'newest',
+        limit,
+        store,
+      });
+const titleId = `${section.id}-title`;
+const image = section.image ?? '1';
+const imagePick = image === 'random' ? 'random' : Number(image) - 1;
+const randomExclude = (section.randomExclude ?? 0) - 1;
 ---
 {result.items.length > 0 && (
-  <section id={section.id} class="featured" aria-labelledby={`${section.id}-title`}>
+  <section
+    id={section.id}
+    class="featured"
+    aria-labelledby={section.title ? titleId : undefined}
+    aria-label={section.title ? undefined : 'Productos destacados'}
+    style={`--featured-cols:${columns}`}
+  >
     <div class="featured-head">
       <div>
-        {section.title && <h2 id={`${section.id}-title`} class="featured-title">{section.title}</h2>}
+        {section.title && <h2 id={titleId} class="featured-title">{section.title}</h2>}
         {section.subtitle && <p class="featured-sub">{section.subtitle}</p>}
       </div>
       {section.ctaLabel && (
         <a class="featured-cta" href={section.ctaUrl}>{section.ctaLabel}</a>
       )}
     </div>
-    <div class="featured-grid">
+    <!-- Escritorio: cuadrícula. Móvil: slider horizontal con tarjetas compactas. -->
+    <ul class="featured-track" role="list" tabindex="0" aria-label={section.title || 'Productos destacados'}>
       {result.items.map((product) => (
-        <ProductCard product={product} />
+        <li class="featured-item">
+          <ProductCard product={product} compact imagePick={imagePick} randomExclude={randomExclude} />
+        </li>
       ))}
-    </div>
+    </ul>
   </section>
 )}
 <style>
@@ -71,19 +100,64 @@ const result = await listStorefrontDesigns({
     background: #12120f;
     color: #fff;
   }
-  .featured-cta:focus-visible {
+  .featured-cta:focus-visible,
+  .featured-track:focus-visible {
     outline: 3px solid rgba(var(--accent-rgb), 0.5);
     outline-offset: 3px;
   }
-  .featured-grid {
+  .featured-track {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(var(--featured-cols, 4), minmax(0, 1fr));
     gap: clamp(1rem, 2.5vw, 2rem);
   }
-  @media (max-width: 600px) {
+  .featured-item {
+    min-width: 0;
+  }
+  /* Tablet: como mucho 3 columnas. */
+  @media (max-width: 1024px) {
+    .featured-track {
+      grid-template-columns: repeat(min(var(--featured-cols, 4), 3), minmax(0, 1fr));
+    }
+  }
+  /* Móvil: slider horizontal con desplazamiento por tarjeta. Se ven dos
+     tarjetas y asoma la siguiente para invitar a deslizar. */
+  @media (max-width: 760px) {
     .featured-head {
-      flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
+    }
+    .featured-cta {
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+    }
+    .featured-track {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: clamp(1rem, 4vw, 3rem);
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      /* El slider llega al borde de la pantalla; el padding mantiene la
+         primera tarjeta alineada con el título. */
+      margin-inline: calc(-1 * clamp(1rem, 4vw, 3rem));
+      padding-inline: clamp(1rem, 4vw, 3rem);
+      padding-bottom: 0.25rem;
+    }
+    .featured-track::-webkit-scrollbar {
+      display: none;
+    }
+    .featured-item {
+      flex: 0 0 42%;
+      scroll-snap-align: start;
+    }
+  }
+  @media (max-width: 380px) {
+    .featured-item {
+      flex-basis: 46%;
     }
   }
 </style>

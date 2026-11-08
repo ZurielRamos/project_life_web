@@ -180,7 +180,15 @@ const hasMobileMenu = cfg.mobileMenu && (nav.length > 0 || cfg.showSearch);
   {hasMobileMenu && (
     <dialog class="drawer" data-drawer aria-label={`Menú de ${brand.name}`}>
       <div class="drawer-head">
-        <span class="drawer-title">{brand.name}</span>
+        <a class="drawer-brand" href="/" aria-label={`${brand.name} inicio`}>
+          {brand.logoUrl ? (
+            <img class="drawer-logo" src={brand.logoUrl} alt={brand.name} />
+          ) : brand.isDefault ? (
+            <span class="drawer-logo drawer-logo-svg" role="img" aria-label={brand.name} set:html={logoSvg}></span>
+          ) : (
+            <span class="drawer-title">{brand.name}</span>
+          )}
+        </a>
         <button type="button" class="drawer-close" data-drawer-close aria-label="Cerrar menú">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
             <path d="M18 6 6 18M6 6l12 12"></path>
@@ -457,6 +465,31 @@ const hasMobileMenu = cfg.mobileMenu && (nav.length > 0 || cfg.showSearch);
     gap: 1rem;
     padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(18, 18, 15, 0.08);
+  }
+  .drawer-brand {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+    border-radius: 8px;
+  }
+  .drawer-brand:focus-visible {
+    outline: 3px solid rgba(var(--accent-rgb), 0.55);
+    outline-offset: 3px;
+  }
+  /* Mismo logo que el encabezado, a una altura cómoda para el panel. */
+  .drawer-logo {
+    display: block;
+    height: 32px;
+    width: auto;
+    max-width: 180px;
+    object-fit: contain;
+  }
+  .drawer-logo-svg :global(svg) {
+    height: 100%;
+    width: auto;
+    display: block;
   }
   .drawer-title {
     font-family: var(--font-display);

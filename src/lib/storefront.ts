@@ -8,9 +8,14 @@ const API_URL =
   import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000/api';
 
 export interface ListOptions {
-  fit?: ProductFit;
+  fit?: ProductFit | string;
   category?: string;
   q?: string;
+  /** Producto base (uuid). */
+  product?: string;
+  /** Selección manual: ids de diseños, se devuelven en ese orden. */
+  ids?: string[];
+  sort?: 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'random';
   limit?: number;
   offset?: number;
   /** Slug de la tienda: limita el catálogo a lo que publica esa tienda. */
@@ -28,6 +33,9 @@ export async function listStorefrontDesigns(
   if (opts.fit) params.set('fit', opts.fit);
   if (opts.category) params.set('category', opts.category);
   if (opts.q) params.set('q', opts.q);
+  if (opts.product) params.set('product', opts.product);
+  if (opts.ids?.length) params.set('ids', opts.ids.join(','));
+  if (opts.sort) params.set('sort', opts.sort);
   if (opts.limit != null) params.set('limit', String(opts.limit));
   if (opts.offset != null) params.set('offset', String(opts.offset));
   if (opts.store) params.set('store', opts.store);

@@ -1,42 +1,59 @@
 ---
 import { bgSources } from '../lib/bg-images';
 import { getBrand } from '../lib/brand';
+import { imageAt, imageSrcset } from '../lib/images';
+import type { HeroSection } from '../lib/site';
+
+interface Props {
+  /** Configuración de la sección (textos, atajos e imágenes). */
+  section: HeroSection;
+  /** id de la sección siguiente, para el enlace "Explora…". */
+  scrollTo?: string;
+}
+
+const { section, scrollTo } = Astro.props;
 const brand = getBrand(Astro.locals.store);
 
-// Imágenes ya optimizadas a AVIF en local (sin transformación en runtime).
-// Art direction: variante mobile (vertical) + desktop (apaisada).
+// Imágenes por defecto ya optimizadas a AVIF en local (sin transformación en
+// runtime). Si la tienda sube las suyas, se sirven desde Cloudinary.
 const heroDesktop = bgSources('bg_hero');
 const heroMobile = bgSources('bg_hero_mobile');
-
-const suggestions = [
-  'una camiseta minimalista',
-  'un diseño de anime',
-  'el logo de mi marca',
-  'una ilustración a mi gusto',
-  'un hoodie oversize negro',
-  'lo que se me ocurra…',
-];
+const customDesktop = section.imageUrl;
+const customMobile = section.mobileImageUrl || section.imageUrl;
+const kicker = section.kicker || brand.tagline;
+const suggestions = section.suggestions.filter((w) => w.trim());
 ---
 
 <section class="hero">
   <picture>
-    <!-- Mobile (art direction): AVIF estático responsive. -->
-    <source
-      media="(max-width: 767px)"
-      type="image/avif"
-      srcset={heroMobile.avifSrcset}
-      sizes="100vw"
-    />
-    <!-- Desktop: AVIF estático responsive. -->
-    <source
-      type="image/avif"
-      srcset={heroDesktop.avifSrcset}
-      sizes="100vw"
-    />
-    <!-- Fallback JPG para navegadores sin soporte AVIF. -->
+    <!-- Mobile (art direction). -->
+    {customMobile ? (
+      <source
+        media="(max-width: 767px)"
+        srcset={imageSrcset(customMobile, [480, 768, 1080]) || customMobile}
+        sizes="100vw"
+      />
+    ) : (
+      <source
+        media="(max-width: 767px)"
+        type="image/avif"
+        srcset={heroMobile.avifSrcset}
+        sizes="100vw"
+      />
+    )}
+    <!-- Desktop. -->
+    {customDesktop ? (
+      <source
+        srcset={imageSrcset(customDesktop, [1280, 1920, 2560]) || customDesktop}
+        sizes="100vw"
+      />
+    ) : (
+      <source type="image/avif" srcset={heroDesktop.avifSrcset} sizes="100vw" />
+    )}
+    <!-- Fallback. -->
     <img
-      src={heroDesktop.fallback}
-      alt={`Dos modelos con camisetas blancas personalizadas con el diseño «Tu diseño aquí» de ${brand.name}`}
+      src={customDesktop ? imageAt(customDesktop, 1920) : heroDesktop.fallback}
+      alt={`${brand.name}: portada`}
       class="hero-img"
       width="2752"
       height="1536"
@@ -48,15 +65,17 @@ const suggestions = [
 
   <div class="hero-inner">
     <div class="hero-copy">
-      {brand.tagline && <p class="hero-kicker">{brand.tagline}</p>}
+      {kicker && <p class="hero-kicker">{kicker}</p>}
       <h1 class="hero-title">
-        Miles de diseños para tu ropa,<br class="br-desktop" />
-        <span class="accent">o crea el tuyo</span>
+        {section.titleLine}
+        {section.titleAccent && (
+          <>
+            <br class="br-desktop" />
+            <span class="accent">{section.titleAccent}</span>
+          </>
+        )}
       </h1>
-      <p class="hero-sub">
-        Explora nuestro catálogo o descríbenos lo que imaginas.
-        Lo estampamos en la prenda que elijas.
-      </p>
+      {section.subtitle && <p class="hero-sub">{section.subtitle}</p>}
     </div>
 
     <form class="search" role="search" action="/tienda" method="get">
@@ -73,7 +92,7 @@ const suggestions = [
           name="q"
           autocomplete="off"
           aria-label="Buscar o describir un diseño"
-          placeholder="Quiero una camiseta minimalista…"
+          placeholder={section.searchPlaceholder}
           data-words={JSON.stringify(suggestions)}
         />
 
@@ -87,22 +106,24 @@ const suggestions = [
       </div>
     </form>
 
-    <div class="chips">
-      <span class="chips-label">Popular:</span>
-      <a href="/tienda?q=anime" class="chip">Anime</a>
-      <a href="/tienda?q=minimalista" class="chip">Minimalista</a>
-      <a href="/tienda?q=streetwear" class="chip">Streetwear</a>
-      <a href="/tienda?q=logo%20de%20marca" class="chip">Tu logo</a>
-      <a href="#custom" class="chip chip--ghost">+ Pedido personalizado</a>
-    </div>
+    {section.chips.length > 0 && (
+      <div class="chips">
+        <span class="chips-label">Popular:</span>
+        {section.chips.map((chip) => (
+          <a href={chip.url} class="chip">{chip.label}</a>
+        ))}
+      </div>
+    )}
   </div>
 
-  <a class="hero-scroll" href="#women" aria-label="Explorar productos">
-    <span class="hero-scroll-text">Explora nuestros productos</span>
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6">
-      <path d="M6 9l6 6 6-6"></path>
-    </svg>
-  </a>
+  {scrollTo && (
+    <a class="hero-scroll" href={`#${scrollTo}`} aria-label="Explorar productos">
+      <span class="hero-scroll-text">Explora nuestros productos</span>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M6 9l6 6 6-6"></path>
+      </svg>
+    </a>
+  )}
 </section>
 
 <script>
@@ -330,7 +351,7 @@ const suggestions = [
     border: 0;
     border-radius: 999px;
     padding: 0.95rem 1.7rem;
-    background: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, #9600fc 100%);
+    background: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, var(--accent-2) 100%);
     color: #ffffff;
     font-weight: 700;
     font-size: 1rem;

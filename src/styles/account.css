@@ -7,13 +7,13 @@
   --acc-accent: var(--accent);
   --acc-accent-dark: var(--accent-dark);
   --acc-soft: rgba(var(--accent-rgb), 0.12);
-  --acc-purple: #9600fc;
-  --acc-gradient: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, #9600fc 100%);
+  --acc-purple: var(--accent-2);
+  --acc-gradient: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, var(--accent-2) 100%);
 
   background: #f4f2ee;
   color: #12120f;
   min-height: 72vh;
-  padding: calc(var(--header-h) + 1.5rem) clamp(1rem, 4vw, 3rem) 4.5rem;
+  padding: calc(var(--header-offset) + 1.5rem) clamp(1rem, 4vw, 3rem) 4.5rem;
 }
 .account-page .account {
   max-width: 780px;

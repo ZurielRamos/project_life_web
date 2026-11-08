@@ -1,0 +1,46 @@
+---
+import '../../styles/info-page.css';
+import '../../styles/prose.css';
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import PageNotFound from '../../components/PageNotFound.astro';
+import { getBrand } from '../../lib/brand';
+import { renderMarkdown } from '../../lib/markdown';
+
+// Páginas de contenido definidas por la tienda (envíos, políticas, etc.).
+const brand = getBrand(Astro.locals.store);
+const slug = Astro.params.slug ?? '';
+const page = brand.site.pages.find((p) => p.slug === slug && p.published);
+
+if (!page) {
+  Astro.response.status = 404;
+}
+
+const html = page ? renderMarkdown(page.content) : '';
+// Descripción para buscadores: primeros ~155 caracteres de texto plano.
+const description = html
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&[a-z#0-9]+;/gi, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .slice(0, 155);
+---
+<Layout
+  title={page ? `${page.title} — ${brand.name}` : `Página no encontrada — ${brand.name}`}
+  description={description || undefined}
+  noindex={!page}
+>
+  <Header solid />
+  {page ? (
+    <main class="info-page">
+      <article class="info-page-inner info-page-narrow">
+        <h1 class="info-title">{page.title}</h1>
+        <div class="prose" set:html={html} />
+      </article>
+    </main>
+  ) : (
+    <PageNotFound />
+  )}
+  <Footer />
+</Layout>

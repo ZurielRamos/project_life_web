@@ -1,3 +1,5 @@
+import { fallbackSite, type SiteConfig } from './site';
+import { composeStoreTitle } from './title';
 import type { StoreConfig } from './store';
 
 /**
@@ -20,6 +22,8 @@ export interface Brand {
   faviconUrl: string | null;
   /** Color de marca #RRGGBB validado, o null. */
   primaryColor: string | null;
+  /** Segundo color de marca #RRGGBB validado, o null. */
+  secondaryColor: string | null;
   contactEmail: string | null;
   phone: string | null;
   address: string | null;
@@ -31,6 +35,8 @@ export interface Brand {
   locale: string;
   seoTitle: string | null;
   seoDescription: string | null;
+  /** Configuración del sitio: menú, footer, home, contacto, páginas… */
+  site: SiteConfig;
 }
 
 /** Valores de la plataforma cuando no hay tienda. */
@@ -61,6 +67,7 @@ export function getBrand(store: StoreConfig | null | undefined): Brand {
       logoUrl: null,
       faviconUrl: null,
       primaryColor: null,
+      secondaryColor: null,
       contactEmail: clean(env.PUBLIC_CONTACT_EMAIL),
       phone: null,
       address: null,
@@ -71,6 +78,7 @@ export function getBrand(store: StoreConfig | null | undefined): Brand {
       locale: 'es',
       seoTitle: null,
       seoDescription: null,
+      site: fallbackSite(),
     };
   }
 
@@ -78,7 +86,7 @@ export function getBrand(store: StoreConfig | null | undefined): Brand {
   return {
     isDefault: false,
     name: store.name,
-    title: clean(store.seoTitle) ?? clean(store.title) ?? store.name,
+    title: composeStoreTitle(store),
     tagline: clean(store.tagline),
     description: clean(store.description),
     logoUrl: clean(store.logoUrl),
@@ -86,6 +94,10 @@ export function getBrand(store: StoreConfig | null | undefined): Brand {
     primaryColor:
       store.primaryColor && HEX.test(store.primaryColor)
         ? store.primaryColor
+        : null,
+    secondaryColor:
+      store.secondaryColor && HEX.test(store.secondaryColor)
+        ? store.secondaryColor
         : null,
     contactEmail: clean(store.contactEmail),
     phone: clean(store.phone),
@@ -99,6 +111,7 @@ export function getBrand(store: StoreConfig | null | undefined): Brand {
     locale: clean(store.locale) ?? 'es',
     seoTitle: clean(store.seoTitle),
     seoDescription: clean(store.seoDescription),
+    site: store.site ?? fallbackSite(),
   };
 }
 

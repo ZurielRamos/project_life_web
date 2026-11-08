@@ -1,0 +1,89 @@
+---
+import ProductCard from './ProductCard.astro';
+import { listStorefrontDesigns } from '../lib/storefront';
+import type { FeaturedSection } from '../lib/site';
+
+interface Props {
+  section: FeaturedSection;
+}
+
+const { section } = Astro.props;
+// Últimos diseños de la tienda (solo los que ella publica).
+const result = await listStorefrontDesigns({
+  fit: section.fit || undefined,
+  limit: section.limit,
+  store: Astro.locals.store?.slug,
+});
+---
+{result.items.length > 0 && (
+  <section id={section.id} class="featured" aria-labelledby={`${section.id}-title`}>
+    <div class="featured-head">
+      <div>
+        {section.title && <h2 id={`${section.id}-title`} class="featured-title">{section.title}</h2>}
+        {section.subtitle && <p class="featured-sub">{section.subtitle}</p>}
+      </div>
+      {section.ctaLabel && (
+        <a class="featured-cta" href={section.ctaUrl}>{section.ctaLabel}</a>
+      )}
+    </div>
+    <div class="featured-grid">
+      {result.items.map((product) => (
+        <ProductCard product={product} />
+      ))}
+    </div>
+  </section>
+)}
+<style>
+  .featured {
+    background: #f4f2ee;
+    color: #12120f;
+    padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1rem, 4vw, 3rem);
+  }
+  .featured-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: clamp(1.25rem, 3vw, 2rem);
+  }
+  .featured-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    line-height: 1.1;
+  }
+  .featured-sub {
+    margin: 0.5rem 0 0;
+    color: #6b6b63;
+  }
+  .featured-cta {
+    flex: none;
+    border: 1px solid #12120f;
+    border-radius: 999px;
+    padding: 0.6rem 1.3rem;
+    color: #12120f;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .featured-cta:hover {
+    background: #12120f;
+    color: #fff;
+  }
+  .featured-cta:focus-visible {
+    outline: 3px solid rgba(var(--accent-rgb), 0.5);
+    outline-offset: 3px;
+  }
+  .featured-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: clamp(1rem, 2.5vw, 2rem);
+  }
+  @media (max-width: 600px) {
+    .featured-head {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

@@ -43,16 +43,55 @@ const faviconHref =
   brand.faviconUrl ?? brand.logoUrl ?? (brand.isDefault ? logo.src : null);
 const faviconType = brand.faviconUrl || brand.logoUrl ? undefined : 'image/svg+xml';
 
-// El color viene validado como #RRGGBB.
-const themeStyle = brand.primaryColor
-  ? [
-      `--accent:${brand.primaryColor}`,
-      `--brand-teal:${brand.primaryColor}`,
-      `--accent-rgb:${hexToRgb(brand.primaryColor)}`,
-      `--accent-dark:color-mix(in srgb, ${brand.primaryColor} 70%, #000)`,
-      `--accent-soft:color-mix(in srgb, ${brand.primaryColor} 65%, #fff)`,
-    ].join(';')
-  : undefined;
+// Barra de anuncio (solo si está activa y tiene texto).
+const site = brand.site;
+// Encabezado apilado (más alto) y no fijo: se resuelven con clases en <html>
+// para que la altura cambie en móvil con una media query.
+const headerStacked = site.header?.layout === 'stacked';
+const headerStatic = site.header?.sticky === false;
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const announcement =
+  site.announcement.enabled && site.announcement.text.trim()
+    ? site.announcement
+    : null;
+const announceBg = announcement && HEX.test(announcement.backgroundColor)
+  ? announcement.backgroundColor
+  : '#0b0b0b';
+const announceFg = announcement && HEX.test(announcement.textColor)
+  ? announcement.textColor
+  : '#ffffff';
+
+// Integraciones: se vuelven a validar aquí antes de inyectarlas en la página.
+const gaId = /^G-[A-Z0-9]{4,20}$/.test(site.integrations.googleAnalyticsId)
+  ? site.integrations.googleAnalyticsId
+  : '';
+const pixelId = /^\d{8,20}$/.test(site.integrations.metaPixelId)
+  ? site.integrations.metaPixelId
+  : '';
+const verification = /^[A-Za-z0-9_-]{10,100}$/.test(
+  site.integrations.googleSiteVerification,
+)
+  ? site.integrations.googleSiteVerification
+  : '';
+
+// Variables CSS del tema. El color de marca viene validado como #RRGGBB.
+const themeVars: string[] = [];
+if (brand.primaryColor) {
+  themeVars.push(
+    `--accent:${brand.primaryColor}`,
+    `--brand-teal:${brand.primaryColor}`,
+    `--accent-rgb:${hexToRgb(brand.primaryColor)}`,
+    `--accent-dark:color-mix(in srgb, ${brand.primaryColor} 70%, #000)`,
+    `--accent-soft:color-mix(in srgb, ${brand.primaryColor} 65%, #fff)`,
+  );
+}
+// Segundo color de marca (validado como #RRGGBB en brand.ts).
+if (brand.secondaryColor) {
+  themeVars.push(`--accent-2:${brand.secondaryColor}`);
+}
+// Alto de la barra de anuncio: el encabezado fijo se desplaza por debajo.
+if (announcement) themeVars.push('--announce-h:36px');
+const themeStyle = themeVars.length ? themeVars.join(';') : undefined;
 
 // Solo la imagen OG por defecto de la plataforma tiene dimensiones/formato
 // conocidos (1200×630 JPG). Para el resto omitimos los hints de tamaño/tipo y
@@ -79,9 +118,11 @@ const ogImageURL = image
 <html
   lang={brand.locale}
   style={themeStyle}
+  class:list={{ 'header-stacked': headerStacked, 'header-static': headerStatic }}
   data-brand-name={brand.name}
   data-brand-logo={brand.logoUrl ?? undefined}
   data-brand-default={brand.isDefault ? 'true' : undefined}
+  data-store-slug={Astro.locals.store?.slug ?? undefined}
 >
   <head>
     <meta charset="UTF-8" />
@@ -93,6 +134,9 @@ const ogImageURL = image
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    {verification && (
+      <meta name="google-site-verification" content={verification} />
+    )}
     {noindex && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- Open Graph (Facebook, LinkedIn, WhatsApp, Telegram, etc.) -->
@@ -131,6 +175,29 @@ const ogImageURL = image
       </>
     )}
 
+    {gaId && (
+      <>
+        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+        <script is:inline define:vars={{ gaId }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag() { dataLayer.push(arguments); }
+          gtag('js', new Date());
+          gtag('config', gaId);
+        </script>
+      </>
+    )}
+    {pixelId && (
+      <script is:inline define:vars={{ pixelId }}>
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+        document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', pixelId);
+        fbq('track', 'PageView');
+      </script>
+    )}
+
     <link
       rel="preload"
       href="/fonts/rumeur.woff2"
@@ -140,6 +207,21 @@ const ogImageURL = image
     />
   </head>
   <body>
+    {announcement && (
+      <div
+        class="announce"
+        role="region"
+        aria-label="Anuncio"
+        style={`background:${announceBg};color:${announceFg}`}
+      >
+        <p class="announce-text">
+          <span>{announcement.text}</span>
+          {announcement.linkLabel && announcement.linkUrl && (
+            <a href={announcement.linkUrl}>{announcement.linkLabel}</a>
+          )}
+        </p>
+      </div>
+    )}
     <slot />
   </body>
 </html>
@@ -178,12 +260,62 @@ const ogImageURL = image
     --accent-rgb: 1, 183, 187;
     --brand-teal: #01b7bb;
     --brand-yellow: #fecc2b;
-    --brand-purple: #9600fc;
+    /* Segundo color de marca: final de los degradados de los botones. */
+    --accent-2: #9600fc;
+    --brand-purple: var(--accent-2);
     --header-h: 72px;
+    --announce-h: 0px;
+    /* Espacio que ocupa lo fijo arriba: barra de anuncio + encabezado. */
+    --header-offset: calc(var(--header-h) + var(--announce-h));
     --font: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
     --font-display: 'rumeur', 'rumeur-fallback', Arial, sans-serif;
   }
 
+  /* Encabezado apilado: logo arriba y menú debajo. En móvil el menú va en
+     el panel lateral, así que recupera la altura normal. */
+  .header-stacked {
+    --header-h: 116px;
+  }
+  @media (max-width: 860px) {
+    .header-stacked {
+      --header-h: 72px;
+    }
+  }
+  /* Encabezado no fijo: la barra de anuncio también se desplaza. */
+  .header-static .announce {
+    position: absolute;
+  }
+  .announce {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 60;
+    height: var(--announce-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+  .announce-text {
+    margin: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    white-space: nowrap;
+  }
+  .announce-text span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .announce-text a {
+    flex: none;
+    color: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
   * {
     box-sizing: border-box;
   }

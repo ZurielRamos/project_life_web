@@ -1021,7 +1021,7 @@ const marquee = [...(initial?.images ?? []), ...(initial?.images ?? [])];
   /* Panel flotante de cards */
   .panel {
     position: absolute;
-    top: calc(var(--header-h) + 1.25rem);
+    top: calc(var(--header-offset) + 1.25rem);
     right: clamp(1rem, 3vw, 2.5rem);
     z-index: 3;
     width: min(380px, calc(100vw - 2rem));

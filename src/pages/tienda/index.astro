@@ -105,7 +105,9 @@ const fitHref = (f?: ProductFit) => {
             ? 'No encontramos diseños que coincidan.'
             : 'Aún no hay diseños en esta categoría.'}
         </p>
-        <a class="empty-cta" href="/#custom">Pide un diseño personalizado</a>
+        {brand.site.contact.enabled && (
+          <a class="empty-cta" href="/contacto">Pide un diseño personalizado</a>
+        )}
       </div>
     )}
   </main>
@@ -127,7 +129,7 @@ const fitHref = (f?: ProductFit) => {
   .shop {
     background: #f4f2ee;
     color: #12120f;
-    padding-top: var(--header-h);
+    padding-top: var(--header-offset);
   }
 
   /* Breadcrumb */

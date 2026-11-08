@@ -1,0 +1,130 @@
+---
+import { imageAt, imageSrcset } from '../lib/images';
+import type { BannerSection } from '../lib/site';
+
+interface Props {
+  section: BannerSection;
+}
+
+const { section } = Astro.props;
+const mobileImage = section.mobileImageUrl || section.imageUrl;
+const external = /^https?:\/\//i.test(section.buttonUrl);
+---
+<section
+  id={section.id}
+  class:list={['banner', `banner--${section.align}`, { 'banner--plain': !section.imageUrl }]}
+  aria-labelledby={section.title ? `${section.id}-title` : undefined}
+>
+  {section.imageUrl && (
+    <picture>
+      {mobileImage && (
+        <source
+          media="(max-width: 767px)"
+          srcset={imageSrcset(mobileImage, [480, 768, 1080]) || mobileImage}
+          sizes="100vw"
+        />
+      )}
+      <img
+        class="banner-img"
+        src={imageAt(section.imageUrl, 1920)}
+        srcset={imageSrcset(section.imageUrl, [1280, 1920, 2560]) || undefined}
+        sizes="100vw"
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
+    </picture>
+  )}
+  <div class="banner-veil"></div>
+  <div class="banner-inner">
+    {section.title && <h2 id={`${section.id}-title`} class="banner-title">{section.title}</h2>}
+    {section.text && <p class="banner-text">{section.text}</p>}
+    {section.buttonLabel && section.buttonUrl && (
+      <a
+        class="banner-btn"
+        href={section.buttonUrl}
+        target={external ? '_blank' : undefined}
+        rel={external ? 'noopener noreferrer' : undefined}
+      >{section.buttonLabel}</a>
+    )}
+  </div>
+</section>
+<style>
+  .banner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: clamp(320px, 52vh, 560px);
+    overflow: hidden;
+    background: #111;
+    color: #fff;
+  }
+  .banner-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .banner-veil {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.1));
+  }
+  .banner--center .banner-veil {
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .banner--right .banner-veil {
+    background: linear-gradient(270deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.1));
+  }
+  .banner--plain .banner-veil {
+    background: linear-gradient(100deg, rgba(var(--accent-rgb), 0.25), transparent 60%);
+  }
+  .banner-inner {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 3rem);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .banner--center .banner-inner {
+    margin: 0 auto;
+    align-items: center;
+    text-align: center;
+  }
+  .banner--right .banner-inner {
+    margin-left: auto;
+    align-items: flex-end;
+    text-align: right;
+  }
+  .banner-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4.5vw, 3rem);
+    line-height: 1.1;
+  }
+  .banner-text {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.6;
+  }
+  .banner-btn {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.8rem 1.6rem;
+    background: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, var(--accent-2) 100%);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .banner-btn:hover {
+    filter: brightness(1.1);
+  }
+  .banner-btn:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+  }
+</style>

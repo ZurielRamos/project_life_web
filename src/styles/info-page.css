@@ -1,0 +1,27 @@
+/* Estructura común de las páginas informativas (contacto, páginas de contenido). */
+.info-page {
+  background: #f4f2ee;
+  color: #12120f;
+  min-height: 72vh;
+  padding: calc(var(--header-offset) + clamp(1.5rem, 4vw, 3rem)) clamp(1rem, 4vw, 3rem) 5rem;
+}
+.info-page-inner {
+  max-width: 920px;
+  margin: 0 auto;
+}
+.info-page-narrow {
+  max-width: 760px;
+}
+.info-title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.1;
+}
+.info-intro {
+  margin: 0 0 2rem;
+  color: #5c5c54;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 60ch;
+}

@@ -1,0 +1,49 @@
+---
+import '../styles/prose.css';
+import { renderMarkdown } from '../lib/markdown';
+import type { TextSection } from '../lib/site';
+
+interface Props {
+  section: TextSection;
+}
+
+const { section } = Astro.props;
+const html = renderMarkdown(section.body);
+---
+{(section.title || html) && (
+  <section
+    id={section.id}
+    class:list={['text-block', `text-block--${section.align}`]}
+    aria-labelledby={section.title ? `${section.id}-title` : undefined}
+  >
+    <div class="text-block-inner">
+      {section.title && <h2 id={`${section.id}-title`} class="text-block-title">{section.title}</h2>}
+      {html && <div class="prose" set:html={html} />}
+    </div>
+  </section>
+)}
+<style>
+  .text-block {
+    background: #f4f2ee;
+    color: #12120f;
+    padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1rem, 4vw, 3rem);
+  }
+  .text-block-inner {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .text-block--center .text-block-inner {
+    text-align: center;
+  }
+  .text-block--center :global(.prose ul),
+  .text-block--center :global(.prose ol) {
+    display: inline-block;
+    text-align: left;
+  }
+  .text-block-title {
+    margin: 0 0 1rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    line-height: 1.1;
+  }
+</style>

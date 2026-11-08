@@ -1,0 +1,25 @@
+---
+import '../styles/info-page.css';
+---
+<main class="info-page">
+  <div class="info-page-inner info-page-narrow nf">
+    <h1 class="info-title">Página no encontrada</h1>
+    <p class="info-intro">Es posible que el enlace sea incorrecto o que la página ya no exista.</p>
+    <a class="nf-link" href="/">Volver al inicio</a>
+  </div>
+</main>
+<style>
+  .nf-link {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.75rem 1.5rem;
+    background: #12120f;
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .nf-link:focus-visible {
+    outline: 3px solid rgba(var(--accent-rgb), 0.6);
+    outline-offset: 3px;
+  }
+</style>

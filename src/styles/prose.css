@@ -1,0 +1,53 @@
+/* Texto con formato simple (páginas de contenido y bloques de texto). */
+.prose {
+  color: #2a2a25;
+  font-size: 1rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose > :last-child {
+  margin-bottom: 0;
+}
+.prose h2,
+.prose h3,
+.prose h4 {
+  color: #12120f;
+  line-height: 1.25;
+  margin: 2rem 0 0.75rem;
+}
+.prose h2 {
+  font-size: 1.5rem;
+}
+.prose h3 {
+  font-size: 1.2rem;
+}
+.prose h4 {
+  font-size: 1.05rem;
+}
+.prose p {
+  margin: 0 0 1.1rem;
+}
+.prose ul,
+.prose ol {
+  margin: 0 0 1.1rem;
+  padding-left: 1.4rem;
+}
+.prose li {
+  margin: 0.3rem 0;
+}
+.prose a {
+  color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose a:hover {
+  color: var(--accent);
+}
+.prose a:focus-visible {
+  outline: 3px solid rgba(var(--accent-rgb), 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
+}

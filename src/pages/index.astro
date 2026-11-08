@@ -3,72 +3,65 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
 import CategoryTile from '../components/CategoryTile.astro';
+import FeaturedProducts from '../components/FeaturedProducts.astro';
+import BannerBlock from '../components/BannerBlock.astro';
+import TextBlock from '../components/TextBlock.astro';
 import Footer from '../components/Footer.astro';
----
+import { getBrand } from '../lib/brand';
+import type { HomeSection } from '../lib/site';
 
+// Las secciones del home (orden, visibilidad y contenido) las define la tienda.
+const brand = getBrand(Astro.locals.store);
+const sections = brand.site.home.sections.filter((s) => s.enabled);
+
+/** Ancla a la que apunta el enlace "Explora…" del hero. */
+const anchorOf = (section: HomeSection | undefined): string | undefined => {
+  if (!section) return undefined;
+  if (section.type === 'categories') {
+    return section.tiles.find((t) => t.enabled)?.id;
+  }
+  return section.id;
+};
+---
 <Layout>
   <Header />
-
   <main>
-    <Hero />
-
-    <section class="categories" aria-label="Categorías">
-      <CategoryTile
-        id="women"
-        base="bg_mujer"
-        baseMobile="bg_mujer_mobile"
-        alt="Ropa de mujer"
-        kicker="Lo nuevo en ella"
-        title="Mujer"
-        href="/tienda?fit=women"
-        cta="Descubre su estilo"
-      />
-      <CategoryTile
-        id="family"
-        base="bg_familia"
-        baseMobile="bg_familia_mobile"
-        alt="Ropa familiar"
-        kicker="Juntos, a juego"
-        title="Familiar"
-        href="/tienda?fit=family"
-        cta="Explora los looks"
-      />
-      <CategoryTile
-        id="men"
-        base="bg_hombre"
-        baseMobile="bg_hombre_mobile"
-        alt="Ropa de hombre"
-        kicker="Corte oversize"
-        title="Hombre"
-        href="/tienda?fit=men"
-        cta="Descubre su estilo"
-      />
-      <CategoryTile
-        id="hoodies"
-        base="bg_hoodie"
-        baseMobile="bg_hoodie_mobile"
-        alt="Ropa unisex"
-        kicker="Básicos sin género"
-        title="Unisex"
-        href="/tienda?fit=unisex"
-        cta="Explora los esenciales"
-      />
-      <CategoryTile
-        id="kids"
-        base="bg_kids"
-        baseMobile="bg_kids_mobile"
-        alt="Ropa infantil"
-        kicker="Estilo en miniatura"
-        title="Kids"
-        href="/tienda?fit=kids"
-        cta="Descubre la línea Kids"
-      />
-    </section>
+    {sections.map((section, index) => {
+      switch (section.type) {
+        case 'hero':
+          return <Hero section={section} scrollTo={anchorOf(sections[index + 1])} />;
+        case 'categories':
+          return (
+            <section class="categories" aria-label="Categorías">
+              {section.tiles
+                .filter((tile) => tile.enabled)
+                .map((tile) => (
+                  <CategoryTile
+                    id={tile.id}
+                    base={tile.defaultImage || undefined}
+                    baseMobile={tile.defaultImage ? `${tile.defaultImage}_mobile` : undefined}
+                    imageUrl={tile.imageUrl || undefined}
+                    mobileImageUrl={tile.mobileImageUrl || undefined}
+                    alt={tile.title}
+                    kicker={tile.kicker}
+                    title={tile.title}
+                    href={tile.url}
+                    cta={tile.cta}
+                  />
+                ))}
+            </section>
+          );
+        case 'featured':
+          return <FeaturedProducts section={section} />;
+        case 'banner':
+          return <BannerBlock section={section} />;
+        case 'text':
+          return <TextBlock section={section} />;
+      }
+    })}
   </main>
-
   <Footer />
 </Layout>
-
 <style>
   .categories {
     display: flex;

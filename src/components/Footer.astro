@@ -6,26 +6,14 @@ import logoSvg from '../assets/logo-inkttex.svg?raw';
 
 import { getBrand } from '../lib/brand';
 const brand = getBrand(Astro.locals.store);
-const baseColumns = [
-  {
-    title: 'Comprar',
-    links: ['Hombre', 'Mujer', 'Hoodies', 'Kids', 'Novedades'],
-  },
-  {
-    title: 'Ayuda',
-    links: ['Envíos', 'Devoluciones', 'Guía de tallas', 'Contacto'],
-  },
-  {
-    title: 'Empresa',
-    links: ['Sobre nosotros', 'Sostenibilidad', 'Trabaja con nosotros'],
-  },
-];
-const columns = baseColumns;
+// Contenido del pie configurado en la tienda.
+const footer = brand.site.footer;
+const columns = footer.columns;
 const year = new Date().getFullYear();
 
 // Redes y contacto: salen de la configuración de la tienda (cada icono solo
 // aparece si el dato existe).
-const socials = [
+const socials = !footer.showSocial ? [] : [
   brand.instagram && { name: 'Instagram', href: brand.instagram, icon: 'instagram' },
   brand.facebook && { name: 'Facebook', href: brand.facebook, icon: 'facebook' },
   brand.tiktok && { name: 'TikTok', href: brand.tiktok, icon: 'tiktok' },
@@ -52,10 +40,10 @@ const socials = [
       ) : (
         <span class="footer-logo store-footer-name">{brand.name}</span>
       )}
-      {(brand.tagline ?? brand.description) && (
-        <p class="footer-tag">{brand.tagline ?? brand.description}</p>
+      {(footer.about || brand.tagline || brand.description) && (
+        <p class="footer-tag">{footer.about || brand.tagline || brand.description}</p>
       )}
-      {(brand.phone || brand.address) && (
+      {footer.showContactInfo && (brand.phone || brand.address) && (
         <p class="footer-tag">
           {brand.phone}{brand.phone && brand.address ? ' · ' : ''}{brand.address}
         </p>
@@ -111,21 +99,28 @@ const socials = [
           <h3>{col.title}</h3>
           <ul>
             {col.links.map((link) => (
-              <li><a href="#">{link}</a></li>
+              <li>
+                <a
+                  href={link.url}
+                  target={/^https?:\/\//i.test(link.url) ? '_blank' : undefined}
+                  rel={/^https?:\/\//i.test(link.url) ? 'noopener noreferrer' : undefined}
+                >{link.label}</a>
+              </li>
             ))}
           </ul>
         </div>
       ))}
     </div>
   </div>
-
   <div class="footer-bottom">
-    <p>© {year} {brand.name}. Todos los derechos reservados.</p>
-    <ul class="legal">
-      <li><a href="#">Privacidad</a></li>
-      <li><a href="#">Términos</a></li>
-      <li><a href="#">Cookies</a></li>
-    </ul>
+    <p>{footer.copyright || `© ${year} ${brand.name}. Todos los derechos reservados.`}</p>
+    {footer.legalLinks.length > 0 && (
+      <ul class="legal">
+        {footer.legalLinks.map((link) => (
+          <li><a href={link.url}>{link.label}</a></li>
+        ))}
+      </ul>
+    )}
   </div>
 </footer>
 

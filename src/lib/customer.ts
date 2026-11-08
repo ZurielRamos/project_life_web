@@ -98,6 +98,23 @@ export function clearCustomerSession(): void {
 // Llamadas a la API
 // ---------------------------------------------------------------------------
 
+/**
+ * Encabezados del acceso de clientes. Los clientes son POR TIENDA: la API
+ * identifica la tienda por el `Origin`, y `x-store-slug` cubre los entornos
+ * sin dominio de tienda (localhost, previews), donde el Origin no basta.
+ */
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  const slug =
+    typeof document !== 'undefined'
+      ? document.documentElement.dataset.storeSlug
+      : undefined;
+  if (slug) headers['x-store-slug'] = slug;
+  return headers;
+}
+
 /** Normaliza el mensaje de error de NestJS (message puede ser arreglo). */
 async function readError(res: Response, fallback: string): Promise<Error> {
   let message = fallback;
@@ -127,7 +144,7 @@ export type VerifyOtpOutcome =
 export async function requestOtp(phone: string): Promise<OtpRequestedResult> {
   const res = await fetch(`${API_URL}/customers/auth/request-otp`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ phone }),
   });
   if (!res.ok) {
@@ -148,7 +165,7 @@ export async function verifyOtp(
 ): Promise<VerifyOtpOutcome> {
   const res = await fetch(`${API_URL}/customers/auth/verify-otp`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ phone, code }),
   });
   if (!res.ok) {

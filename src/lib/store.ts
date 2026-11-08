@@ -4,6 +4,8 @@
  * dominios propios; la API decide a qué tienda corresponde cada host.
  */
 
+import type { SiteConfig } from './site';
+
 const API_URL =
   import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000/api';
 
@@ -17,6 +19,8 @@ export interface StoreConfig {
   logoUrl: string | null;
   faviconUrl: string | null;
   primaryColor: string | null;
+  /** Segundo color de marca (final de los degradados). */
+  secondaryColor: string | null;
   contactEmail: string | null;
   phone: string | null;
   address: string | null;
@@ -26,6 +30,8 @@ export interface StoreConfig {
   seoTitle: string | null;
   seoDescription: string | null;
   publicUrl: string | null;
+  /** Configuración del sitio (apariencia y contenido), ya completa. */
+  site: SiteConfig;
 }
 
 /** Resultado de resolver el host de una petición. */

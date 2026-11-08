@@ -128,7 +128,23 @@ export interface HeroSection extends HomeSectionBase {
   chips: SiteLink[];
   imageUrl: string;
   mobileImageUrl: string;
+  // Opcionales: si la API aún no los envía, Hero.astro usa los valores por defecto.
+  height?: HeroHeight;
+  mobileHeight?: HeroHeight;
+  align?: 'left' | 'center' | 'right';
+  vAlign?: 'top' | 'center' | 'bottom';
+  overlay?: number;
+  textPanel?: 'glass' | 'solid' | 'none';
+  textColor?: 'light' | 'dark';
+  imagePosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  zoom?: boolean;
+  showSearch?: boolean;
+  showScroll?: boolean;
+  primaryCta?: SiteLink;
+  secondaryCta?: SiteLink;
 }
+
+export type HeroHeight = 'full' | 'large' | 'half' | 'auto';
 
 export interface CategoriesSection extends HomeSectionBase {
   type: 'categories';

@@ -21,6 +21,8 @@ export interface StoreConfig {
   primaryColor: string | null;
   /** Segundo color de marca (final de los degradados). */
   secondaryColor: string | null;
+  /** Botón «Crea tu propia camiseta» (ausente en APIs antiguas = visible). */
+  customDesignerEnabled?: boolean;
   contactEmail: string | null;
   phone: string | null;
   address: string | null;

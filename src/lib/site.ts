@@ -66,6 +66,15 @@ export interface FooterConfig {
   copyright: string;
   showSocial: boolean;
   showContactInfo: boolean;
+  // Opcionales: si la API aún no los envía, Footer.astro usa los valores por defecto.
+  layout?: 'columns' | 'centered' | 'compact';
+  appearance?: 'dark' | 'light' | 'brand';
+  showLogo?: boolean;
+  logoSize?: 'sm' | 'md' | 'lg';
+  mobileColumns?: 'hidden' | 'accordion' | 'visible';
+  cta?: SiteLink;
+  bottomNote?: string;
+  showBackToTop?: boolean;
 }
 
 export interface FaqItem {
@@ -91,6 +100,8 @@ export interface SitePage {
   title: string;
   content: string;
   published: boolean;
+  /** Se enlaza automáticamente en la franja inferior del pie. */
+  inFooter?: boolean;
 }
 
 export interface IntegrationsConfig {

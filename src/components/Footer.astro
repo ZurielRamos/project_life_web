@@ -11,6 +11,31 @@ const footer = brand.site.footer;
 const columns = footer.columns;
 const year = new Date().getFullYear();
 
+// Opciones de diseño (con valores por defecto = pie original).
+const layout = footer.layout ?? 'columns';
+const appearance = footer.appearance ?? 'dark';
+const showLogo = footer.showLogo ?? true;
+const logoSize = footer.logoSize ?? 'md';
+const mobileColumns = footer.mobileColumns ?? 'hidden';
+const cta = footer.cta?.label && footer.cta?.url ? footer.cta : null;
+const bottomNote = footer.bottomNote ?? '';
+const showBackToTop = footer.showBackToTop ?? false;
+const isExternal = (url: string) => /^https?:\/\//i.test(url);
+// Enlaces legales: los del pie + las páginas marcadas «en el pie» (sin repetir).
+const legalLinks = [
+  ...footer.legalLinks,
+  ...brand.site.pages
+    .filter((p) => p.published && p.inFooter)
+    .map((p) => ({ label: p.title, url: `/p/${p.slug}` })),
+].filter((link, i, all) => all.findIndex((l) => l.url === link.url) === i);
+const footerClass = [
+  'footer',
+  `layout-${layout}`,
+  `look-${appearance}`,
+  `logo-${logoSize}`,
+  `mcols-${mobileColumns}`,
+].join(' ');
+
 // Redes y contacto: salen de la configuración de la tienda (cada icono solo
 // aparece si el dato existe).
 const socials = !footer.showSocial ? [] : [
@@ -30,10 +55,10 @@ const socials = !footer.showSocial ? [] : [
 ].filter(Boolean) as { name: string; href: string; icon: string }[];
 ---
 
-<footer class="footer">
+<footer class={footerClass}>
   <div class="footer-top">
     <div class="footer-brand">
-      {brand.logoUrl ? (
+      {!showLogo ? null : brand.logoUrl ? (
         <img class="footer-logo store-footer-logo" src={brand.logoUrl} alt={brand.name} />
       ) : brand.isDefault ? (
         <span class="footer-logo" role="img" aria-label={brand.name} set:html={logoSvg}></span>
@@ -47,6 +72,15 @@ const socials = !footer.showSocial ? [] : [
         <p class="footer-tag">
           {brand.phone}{brand.phone && brand.address ? ' · ' : ''}{brand.address}
         </p>
+      )}
+
+      {cta && (
+        <a
+          class="footer-cta"
+          href={cta.url}
+          target={isExternal(cta.url) ? '_blank' : undefined}
+          rel={isExternal(cta.url) ? 'noopener noreferrer' : undefined}
+        >{cta.label}</a>
       )}
 
       {socials.length > 0 && (
@@ -93,36 +127,64 @@ const socials = !footer.showSocial ? [] : [
       )}
     </div>
 
-    <div class="footer-cols">
+    {columns.length > 0 && (
+    <div class="footer-cols" style={`--footer-cols:${Math.min(columns.length, 4)}`}>
       {columns.map((col) => (
-        <div class="footer-col">
-          <h3>{col.title}</h3>
+        <!-- <details> abierto: en escritorio siempre se ve; en móvil con
+             "desplegables" el script lo cierra y funciona como acordeón. -->
+        <details class="footer-col" open>
+          <summary>
+            <h3>{col.title}</h3>
+            <svg class="footer-col-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+          </summary>
           <ul>
             {col.links.map((link) => (
               <li>
                 <a
                   href={link.url}
-                  target={/^https?:\/\//i.test(link.url) ? '_blank' : undefined}
-                  rel={/^https?:\/\//i.test(link.url) ? 'noopener noreferrer' : undefined}
+                  target={isExternal(link.url) ? '_blank' : undefined}
+                  rel={isExternal(link.url) ? 'noopener noreferrer' : undefined}
                 >{link.label}</a>
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       ))}
     </div>
+    )}
   </div>
   <div class="footer-bottom">
     <p>{footer.copyright || `© ${year} ${brand.name}. Todos los derechos reservados.`}</p>
-    {footer.legalLinks.length > 0 && (
+    {bottomNote && <p class="footer-note">{bottomNote}</p>}
+    {legalLinks.length > 0 && (
       <ul class="legal">
-        {footer.legalLinks.map((link) => (
+        {legalLinks.map((link) => (
           <li><a href={link.url}>{link.label}</a></li>
         ))}
       </ul>
     )}
+    {showBackToTop && (
+      <a class="footer-top-link" href="#">
+        Volver arriba
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 15 6-6 6 6" /></svg>
+      </a>
+    )}
   </div>
 </footer>
+
+{mobileColumns === 'accordion' && columns.length > 0 && (
+  <script>
+    // Acordeón solo en móvil: cerradas al entrar; en escritorio siempre abiertas.
+    const mq = matchMedia('(max-width: 860px)');
+    const sync = () => {
+      document.querySelectorAll<HTMLDetailsElement>('.mcols-accordion .footer-col').forEach((d) => {
+        d.open = !mq.matches;
+      });
+    };
+    sync();
+    mq.addEventListener('change', sync);
+  </script>
+)}
 
 <style>
   .store-footer-logo {
@@ -202,8 +264,29 @@ const socials = !footer.showSocial ? [] : [
 
   .footer-cols {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(max(var(--footer-cols, 3), 3), 1fr);
     gap: 1.5rem;
+  }
+
+  .footer-col summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.9rem;
+    /* Solo es un botón en el acordeón móvil (ver media query). */
+    pointer-events: none;
+  }
+
+  .footer-col summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .footer-col-chevron {
+    display: none;
+    color: var(--muted);
+    transition: transform 0.2s ease;
   }
 
   .footer-col h3 {
@@ -211,7 +294,7 @@ const socials = !footer.showSocial ? [] : [
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 0.9rem;
+    margin: 0;
   }
 
   .footer-col li {
@@ -220,11 +303,170 @@ const socials = !footer.showSocial ? [] : [
 
   .footer-col a {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.82);
+    color: var(--footer-link);
   }
 
   .footer-col a:hover {
     color: var(--fg);
+  }
+
+  /* ---------- Apariencia ---------- */
+  .footer {
+    --footer-link: rgba(255, 255, 255, 0.82);
+    color: var(--fg);
+  }
+
+  .look-light {
+    --fg: #12120f;
+    --muted: #6b6b63;
+    --line: rgba(18, 18, 15, 0.12);
+    --footer-link: #33332e;
+    background: #f4f2ee;
+  }
+
+  /* Logo por defecto en fondo claro: la parte oscura vuelve a su color. */
+  .look-light .footer-logo :global(.st0) {
+    fill: #12120f;
+  }
+
+  .look-brand {
+    --fg: #ffffff;
+    --muted: rgba(255, 255, 255, 0.78);
+    --line: rgba(255, 255, 255, 0.25);
+    --footer-link: rgba(255, 255, 255, 0.9);
+    background: var(--accent);
+  }
+
+  .look-brand .footer-social-link:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: #ffffff;
+    color: #ffffff;
+  }
+
+  /* ---------- Tamaño del logo ---------- */
+  .logo-sm .footer-logo { height: 30px; }
+  .logo-sm .store-footer-logo { max-height: 34px; }
+  .logo-lg .footer-logo { height: 58px; }
+  .logo-lg .store-footer-logo { max-height: 68px; }
+  .logo-sm .store-footer-name { font-size: 1.15rem; }
+  .logo-lg .store-footer-name { font-size: 2rem; }
+
+  /* ---------- Botón ---------- */
+  .footer-cta {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 1.25rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: 999px;
+    background: linear-gradient(100deg, var(--accent) 0%, var(--accent) 40%, var(--accent-2) 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: transform 0.2s ease, filter 0.2s ease;
+  }
+
+  .footer-cta:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+  }
+
+  .look-brand .footer-cta {
+    background: #ffffff;
+    color: var(--accent);
+  }
+
+  .footer-cta:focus-visible,
+  .footer-top-link:focus-visible {
+    outline: 3px solid var(--fg);
+    outline-offset: 3px;
+  }
+
+  .footer-note {
+    margin: 0;
+  }
+
+  .footer-top-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--fg);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  /* ---------- Distribución ---------- */
+  /* Centrado: todo apilado y al centro. */
+  .layout-centered .footer-top {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .layout-centered .footer-tag {
+    margin-inline: auto;
+  }
+
+  .layout-centered .footer-social {
+    justify-content: center;
+  }
+
+  .layout-centered .footer-cols {
+    width: min(100%, 52rem);
+  }
+
+  .layout-centered .footer-col summary {
+    justify-content: center;
+  }
+
+  .layout-centered .footer-bottom {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* Compacto: una fila con la marca a un lado y los enlaces en línea. */
+  .layout-compact {
+    padding-top: clamp(1.75rem, 4vw, 2.5rem);
+  }
+
+  .layout-compact .footer-top {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
+  .layout-compact .footer-tag {
+    display: none;
+  }
+
+  .layout-compact .footer-social {
+    margin-top: 0.75rem;
+  }
+
+  .layout-compact .footer-cols {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem 1.5rem;
+  }
+
+  .layout-compact .footer-col summary {
+    display: none;
+  }
+
+  .layout-compact .footer-col ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+  }
+
+  .layout-compact .footer-col li {
+    margin: 0;
+  }
+
+  .layout-compact .footer-bottom {
+    margin-top: 1.5rem;
   }
 
   .footer-bottom {
@@ -241,21 +483,61 @@ const socials = !footer.showSocial ? [] : [
 
   .legal {
     display: flex;
-    gap: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
   }
 
   @media (max-width: 860px) {
     .footer-top {
       grid-template-columns: 1fr;
     }
-    /* En mobile ocultamos las columnas de enlaces; dejamos marca, descripción
-       y redes sociales. */
-    .footer-cols {
+    /* Columnas en móvil: ocultas, visibles (2 por fila) o acordeón (1 por fila). */
+    .mcols-hidden .footer-cols {
       display: none;
+    }
+    .mcols-visible .footer-cols {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .mcols-accordion .footer-cols {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .mcols-accordion .footer-col {
+      border-bottom: 1px solid var(--line);
+    }
+    .mcols-accordion .footer-col summary {
+      pointer-events: auto;
+      cursor: pointer;
+      min-height: 48px;
+      margin: 0;
+    }
+    .mcols-accordion .footer-col-chevron {
+      display: block;
+    }
+    .mcols-accordion .footer-col[open] .footer-col-chevron {
+      transform: rotate(180deg);
+    }
+    .mcols-accordion .footer-col ul {
+      padding-bottom: 0.75rem;
+    }
+    .mcols-accordion.layout-centered .footer-col summary {
+      justify-content: space-between;
+    }
+    .layout-compact .footer-top {
+      grid-template-columns: 1fr;
+    }
+    .layout-compact .footer-cols {
+      justify-content: flex-start;
+    }
+    .layout-compact.mcols-accordion .footer-col summary {
+      display: flex;
     }
     .footer-bottom {
       flex-direction: column;
       align-items: flex-start;
+    }
+    .layout-centered .footer-bottom {
+      align-items: center;
     }
   }
 </style>

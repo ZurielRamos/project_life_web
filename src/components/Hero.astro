@@ -283,6 +283,9 @@ const heroStyle = `--hero-overlay:${overlay};--hero-pos:${imagePosition};`;
     height: 100%;
     object-fit: cover;
     object-position: var(--hero-pos, center);
+    /* El zoom crece desde el mismo punto elegido; si creciera desde el centro
+       recortaría justo la parte que se pidió mantener visible. */
+    transform-origin: var(--hero-pos, center);
     transform: scale(1.05);
     animation: slow-zoom 18s ease-in-out infinite alternate;
   }

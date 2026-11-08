@@ -34,6 +34,16 @@ const titleId = `${section.id}-title`;
 const image = section.image ?? '1';
 const imagePick = image === 'random' ? 'random' : Number(image) - 1;
 const randomExclude = (section.randomExclude ?? 0) - 1;
+// Movimiento infinito solo si hay más productos que columnas visibles.
+const marquee = result.items.length > columns;
+// La foto aleatoria se decide una vez por producto, para que la copia del
+// bucle muestre la misma y no se note el salto al reiniciar.
+const picks = result.items.map((product) => {
+  if (imagePick !== 'random') return imagePick;
+  const count = product.colors[0]?.images?.length ?? 0;
+  const candidates = Array.from({ length: count }, (_, i) => i).filter((i) => i !== randomExclude);
+  return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : 0;
+});
 ---
 {result.items.length > 0 && (
   <section
@@ -52,14 +62,28 @@ const randomExclude = (section.randomExclude ?? 0) - 1;
         <a class="featured-cta" href={section.ctaUrl}>{section.ctaLabel}</a>
       )}
     </div>
-    <!-- Escritorio: cuadrícula. Móvil: slider horizontal con tarjetas compactas. -->
-    <ul class="featured-track" role="list" tabindex="0" aria-label={section.title || 'Productos destacados'}>
-      {result.items.map((product) => (
-        <li class="featured-item">
-          <ProductCard product={product} compact imagePick={imagePick} randomExclude={randomExclude} />
-        </li>
-      ))}
-    </ul>
+    <!-- Slider horizontal. Escritorio: avanza solo en bucle infinito (la lista
+         se repite una vez, oculta para lectores y teclado). Móvil: deslizar. -->
+    <div class:list={['featured-viewport', { 'is-marquee': marquee }]}>
+      <ul
+        class="featured-track"
+        role="list"
+        tabindex="0"
+        aria-label={section.title || 'Productos destacados'}
+        style={`--featured-duration:${result.items.length * 4.5}s`}
+      >
+        {result.items.map((product, i) => (
+          <li class="featured-item">
+            <ProductCard product={product} compact imagePick={picks[i]} />
+          </li>
+        ))}
+        {marquee && result.items.map((product, i) => (
+          <li class="featured-item featured-clone" aria-hidden="true" inert>
+            <ProductCard product={product} compact imagePick={picks[i]} />
+          </li>
+        ))}
+      </ul>
+    </div>
   </section>
 )}
 <style>
@@ -105,21 +129,58 @@ const randomExclude = (section.randomExclude ?? 0) - 1;
     outline: 3px solid rgba(var(--accent-rgb), 0.5);
     outline-offset: 3px;
   }
+  /* ---------- Escritorio / tablet: fila horizontal ---------- */
+  .featured-viewport {
+    container-type: inline-size;
+    /* --featured-gap: separación entre tarjetas (va dentro de cada ítem para
+       que la lista repetida mida exactamente el doble y el bucle no salte). */
+    --featured-gap: clamp(1rem, 2.5vw, 2rem);
+    --featured-visible: var(--featured-cols, 4);
+    overflow: hidden;
+  }
   .featured-track {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: grid;
-    grid-template-columns: repeat(var(--featured-cols, 4), minmax(0, 1fr));
-    gap: clamp(1rem, 2.5vw, 2rem);
+    display: flex;
+    width: max-content;
   }
   .featured-item {
-    min-width: 0;
+    flex: none;
+    box-sizing: border-box;
+    width: calc((100cqw + var(--featured-gap)) / var(--featured-visible));
+    padding-inline-end: var(--featured-gap);
   }
-  /* Tablet: como mucho 3 columnas. */
+  /* Tablet: como mucho 3 visibles. */
   @media (max-width: 1024px) {
-    .featured-track {
-      grid-template-columns: repeat(min(var(--featured-cols, 4), 3), minmax(0, 1fr));
+    .featured-viewport {
+      --featured-visible: min(var(--featured-cols, 4), 3);
+    }
+  }
+  /* Movimiento infinito: la lista está duplicada; al llegar a la mitad vuelve
+     al inicio sin que se note. Se pausa al pasar el mouse o con el teclado. */
+  @media (min-width: 761px) {
+    .is-marquee .featured-track {
+      animation: featured-marquee var(--featured-duration, 40s) linear infinite;
+    }
+    .is-marquee:hover .featured-track,
+    .is-marquee:focus-within .featured-track {
+      animation-play-state: paused;
+    }
+  }
+  @keyframes featured-marquee {
+    to { transform: translateX(-50%); }
+  }
+  /* Sin animaciones: fila que se desplaza a mano, sin la copia. */
+  @media (prefers-reduced-motion: reduce) {
+    .featured-viewport {
+      overflow-x: auto;
+    }
+    .is-marquee .featured-track {
+      animation: none;
+    }
+    .featured-clone {
+      display: none;
     }
   }
   /* Móvil: slider horizontal con desplazamiento por tarjeta. Se ven dos
@@ -132,9 +193,8 @@ const randomExclude = (section.randomExclude ?? 0) - 1;
       padding: 0.45rem 1rem;
       font-size: 0.8rem;
     }
-    .featured-track {
-      display: flex;
-      gap: 0.75rem;
+    .featured-viewport {
+      --featured-gap: 0.75rem;
       overflow-x: auto;
       overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
@@ -147,17 +207,21 @@ const randomExclude = (section.randomExclude ?? 0) - 1;
       padding-inline: clamp(1rem, 4vw, 3rem);
       padding-bottom: 0.25rem;
     }
-    .featured-track::-webkit-scrollbar {
+    .featured-viewport::-webkit-scrollbar {
       display: none;
     }
     .featured-item {
-      flex: 0 0 42%;
+      width: calc(42vw + var(--featured-gap));
       scroll-snap-align: start;
+    }
+    /* En móvil se desliza a mano: la copia del bucle no hace falta. */
+    .featured-clone {
+      display: none;
     }
   }
   @media (max-width: 380px) {
     .featured-item {
-      flex-basis: 46%;
+      width: calc(46vw + var(--featured-gap));
     }
   }
 </style>

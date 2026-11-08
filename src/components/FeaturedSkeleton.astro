@@ -1,0 +1,103 @@
+---
+import type { FeaturedSection } from '../lib/site';
+
+/** Marcador mientras llegan los productos destacados (server island). */
+interface Props {
+  section: FeaturedSection;
+}
+
+const { section } = Astro.props;
+const columns = section.columns ?? 4;
+const count = Math.min(Math.max(section.limit ?? 8, 2), columns);
+---
+<section class="featured-skeleton" aria-busy="true" aria-label="Cargando productos destacados" style={`--featured-cols:${columns}`}>
+  <div class="sk-head">
+    {section.title ? <h2 class="sk-title">{section.title}</h2> : <span class="sk-bar sk-bar--title"></span>}
+    {section.subtitle && <p class="sk-sub">{section.subtitle}</p>}
+  </div>
+  <ul class="sk-track" role="list">
+    {Array.from({ length: count }, () => (
+      <li class="sk-card">
+        <span class="sk-img"></span>
+        <span class="sk-bar"></span>
+        <span class="sk-bar sk-bar--short"></span>
+      </li>
+    ))}
+  </ul>
+</section>
+<style>
+  .featured-skeleton {
+    background: #f4f2ee;
+    color: #12120f;
+    padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1rem, 4vw, 3rem);
+  }
+  .sk-head {
+    margin-bottom: clamp(1.25rem, 3vw, 2rem);
+  }
+  .sk-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    line-height: 1.1;
+  }
+  .sk-sub {
+    margin: 0.5rem 0 0;
+    color: #6b6b63;
+  }
+  .sk-track {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--featured-cols, 4), minmax(0, 1fr));
+    gap: clamp(1rem, 2.5vw, 2rem);
+  }
+  .sk-card {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .sk-img,
+  .sk-bar {
+    display: block;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #e6e3dc 0%, #efede8 50%, #e6e3dc 100%);
+    background-size: 200% 100%;
+    animation: sk-shine 1.4s ease-in-out infinite;
+  }
+  .sk-img {
+    aspect-ratio: 4 / 5;
+  }
+  .sk-bar {
+    height: 0.9rem;
+    border-radius: 6px;
+  }
+  .sk-bar--short {
+    width: 45%;
+  }
+  .sk-bar--title {
+    width: 14rem;
+    height: 2rem;
+  }
+  @keyframes sk-shine {
+    to { background-position: -200% 0; }
+  }
+  @media (max-width: 1024px) {
+    .sk-track {
+      grid-template-columns: repeat(min(var(--featured-cols, 4), 3), minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 760px) {
+    .sk-track {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sk-card:nth-child(n + 3) {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sk-img,
+    .sk-bar {
+      animation: none;
+    }
+  }
+</style>

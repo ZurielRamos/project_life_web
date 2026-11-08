@@ -40,7 +40,8 @@ if (imagePick === 'random') {
 }
 const primary = images[pick] ?? product.cover ?? null;
 // Al pasar el mouse se muestra otra imagen distinta de la elegida.
-const secondary = images.find((_, i) => i !== pick) ?? null;
+// La compacta (sliders) muestra solo una imagen, también en escritorio.
+const secondary = compact ? null : images.find((_, i) => i !== pick) ?? null;
 // En mobile el media es un carrusel con swipe de todas las imágenes.
 const hasMultiple = images.length > 1;
 

@@ -4,6 +4,7 @@ import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
 import CategoryTile from '../components/CategoryTile.astro';
 import FeaturedProducts from '../components/FeaturedProducts.astro';
+import FeaturedSkeleton from '../components/FeaturedSkeleton.astro';
 import BannerBlock from '../components/BannerBlock.astro';
 import TextBlock from '../components/TextBlock.astro';
 import Footer from '../components/Footer.astro';
@@ -52,7 +53,12 @@ const anchorOf = (section: HomeSection | undefined): string | undefined => {
             </section>
           );
         case 'featured':
-          return <FeaturedProducts section={section} />;
+          // Server island: la página no espera a la API; mientras tanto, skeleton.
+          return (
+            <FeaturedProducts server:defer section={section}>
+              <FeaturedSkeleton slot="fallback" section={section} />
+            </FeaturedProducts>
+          );
         case 'banner':
           return <BannerBlock section={section} />;
         case 'text':

@@ -198,13 +198,6 @@ const ogImageURL = image
       </script>
     )}
 
-    <link
-      rel="preload"
-      href="/fonts/rumeur.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
   </head>
   <body>
     {announcement && (
@@ -227,27 +220,6 @@ const ogImageURL = image
 </html>
 
 <style is:global>
-  /* Fuente de display para los títulos de sección.
-     swap + fallback con métricas ajustadas => la fuente aparece
-     cuanto antes y el intercambio no provoca reflow (sin saltos). */
-  @font-face {
-    font-family: 'rumeur';
-    src: url('/fonts/rumeur.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-  }
-
-  @font-face {
-    font-family: 'rumeur-fallback';
-    src: local('Arial Bold'), local('Arial');
-    font-weight: 700;
-    size-adjust: 105%;
-    ascent-override: 80%;
-    descent-override: 20%;
-    line-gap-override: 0%;
-  }
-
   :root {
     --bg: #0b0b0b;
     --fg: #ffffff;
@@ -268,7 +240,8 @@ const ogImageURL = image
     /* Espacio que ocupa lo fijo arriba: barra de anuncio + encabezado. */
     --header-offset: calc(var(--header-h) + var(--announce-h));
     --font: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
-    --font-display: 'rumeur', 'rumeur-fallback', Arial, sans-serif;
+    /* Los títulos usan la misma fuente base del sitio (sin fuente display). */
+    --font-display: var(--font);
   }
 
   /* Encabezado apilado: logo arriba y menú debajo. En móvil el menú va en
